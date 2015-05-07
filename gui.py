@@ -12,7 +12,7 @@ import logic
 
 class MainWindow(QtGui.QMainWindow):
     def __init__(self):
-        global input_text
+        global choose_container, main_widget, choose_gb
         QtGui.QMainWindow.__init__(self)
 
         # создание главного виджета
@@ -32,79 +32,100 @@ class MainWindow(QtGui.QMainWindow):
         main_container.addWidget(exit_button, 1, 0, 1, 1)
 
         # создание рамки для ввода id
-        input_gb = QtGui.QGroupBox('Введите id')
-        input_gb.setAlignment(QtCore.Qt.AlignCenter)
+        choose_gb = QtGui.QGroupBox('Выберите группу и семестр')
+        choose_gb.setAlignment(QtCore.Qt.AlignCenter)
 
         # добавление рамки в сетку
-        main_container.addWidget(input_gb, 0, 0, 1, 1)
+        main_container.addWidget(choose_gb, 0, 0, 1, 1)
 
-        # создание сетки, в которую помещаются остальные виджеты
-        input_container = QtGui.QGridLayout()
-
-        # создание поля ввода сообщения
-        input_text = QtGui.QLineEdit()
-        input_text.setFixedHeight(25)
-        input_text.setMinimumWidth(200)
-        input_container.addWidget(input_text, 0, 0, 1, 1)
-
-        # создание поля ввода сообщения
-        input_button = QtGui.QPushButton('Send')
-        input_button.setFixedSize(75, 25)
-        input_container.addWidget(input_button, 0, 1, 1, 1)
-
-        # отправляет id
-        input_button.clicked.connect(self.input)
+        # создание сетки, в которую помещаются выпадающие списки
+        choose_container = QtGui.QGridLayout()
 
         # добавление сетки в рамку
-        input_gb.setLayout(input_container)
+        choose_gb.setLayout(choose_container)
 
-    def input(self):
-        global input_text
-        # вызов функции по поиску введенного id
-        gotten_id = input_text.text()
-        print(gotten_id)
+        # создание сообщения о выборе группы
+        choose_group_l = QtGui.QLabel(u"""Выберите номер группы:""")
+        choose_container.addWidget(choose_group_l, 0, 0, 1, 1)
 
-        prava = logic.search(gotten_id)
+        # создание выпадающего списка о выборе группы
+        choose_group_cb = QtGui.QComboBox()
+        choose_group_cb.clear()
+        # добавляет пустую строку, чтобы изначально группа не была выбрана
+        choose_group_cb.addItem(None)
+
         """
-        отправляет в функцию введенный id и получает его права
-        Получает:
-            0 - введен id преподавателя
-            1 - введен id старосты
-            2 - введен id студента
-            3 - id не найден
-            4 - id введен неверно
+        Вызываю функцию для получения списка групп
         """
+        list_of_groups = logic.group_get()
+        # добавляет в выпадающий список группы
+        for i in list_of_groups:
+            choose_group_cb.addItem(str(i))
+        choose_group_cb.setEditable(True)
 
-        if prava == 0:
-            # вызывет таблицу с правами преподавателя
-            self.sensei()
-        elif prava == 1:
-            # вызывет таблицу с правами старосты
-            self.sempai()
-        elif prava == 2:
-            # просто ставит отметку о присутствии
-            self.kohai()
-        elif prava == 3:
-            # выводит окно об ошибке
-            self.not_found()
-        elif prava == 4:
-            # выводит окно об ошибке
-            self.input_error()
+        # добавление списка в сетку
+        choose_container.addWidget(choose_group_cb, 1, 0, 1, 1)
 
-    def sensei(self):
-        pass
+        # при выборе значения из списка вызывает функцию по поиску семестров
+        choose_group_cb.currentIndexChanged[str].connect(self.choose_semester)
 
-    def sempai(self):
-        pass
+    def choose_semester(self, group_index):
+        global choose_container, choose_semester_cb, choose_semester_l
+        print(group_index)
+        try:
+            choose_semester_l.deleteLater()
+            choose_semester_l.setParent(None)
+            choose_semester_cb.deleteLater()
+            choose_semester_cb.setParent(None)
+        except NameError:
+            pass
+        except RuntimeError:
+            pass
 
-    def kohai(self):
-        pass
+        # создание сообщения о выборе группы
+        choose_semester_l = QtGui.QLabel(u"""Выберите номер семестра:""")
+        choose_container.addWidget(choose_semester_l, 3, 0, 1, 1)
 
-    def not_found(self):
-        pass
-    
-    def input_error(self):
-        pass
+        # создание выпадающего списка о выборе группы
+        choose_semester_cb = QtGui.QComboBox()
+        choose_semester_cb.clear()
+        # добавляет пустую строку, чтобы изначально группа не была выбрана
+        choose_semester_cb.addItem(None)
+
+        """
+        Вызываю функцию для получения списка семестров
+        Оправляю номер группы
+        Должен получить список с семестрами
+        """
+        try:
+            list_of_semester = logic.semester_get(group_index)
+            # добавляет в выпадающий список семестры
+            for i in list_of_semester:
+                choose_semester_cb.addItem(str(i))
+        except logic.WrongDataError:
+            print('kek')
+            try:
+                choose_semester_l.deleteLater()
+                choose_semester_l.setParent(None)
+                choose_semester_cb.deleteLater()
+                choose_semester_cb.setParent(None)
+            except NameError:
+                pass
+
+            choose_gb.resize(choose_gb.sizeHint())
+            self.resize(choose_gb.sizeHint())
+            MainWindow.adjustSize(self)
+
+        choose_semester_cb.setEditable(True)
+
+        # добавление списка в сетку
+        choose_container.addWidget(choose_semester_cb, 4, 0, 1, 1)
+
+        # при выборе значения из списка вызывает функцию по поиску семестров
+        choose_semester_cb.currentIndexChanged[str].connect(self.semester)
+
+    def semester(self, semester_index):
+        print(semester_index)
 
 if __name__ == '__main__':
     sip.setdestroyonexit(False)
