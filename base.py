@@ -4,8 +4,10 @@
 """
 import sqlite3
 from os.path import exists  # проверка существования файла
+from os import mkdir  # создание папки
 from functools import reduce
 
+DBS_PATH = 'groups'  # где хранить все базы
 
 class WrongDataError(Exception):
     pass
@@ -17,7 +19,10 @@ class BaseNotFoundError(Exception):
 
 # ВНУТРЕННИЕ ФУНКЦИИ
 def _query(db, query):
-    db = 'groups/' + db
+    if DBS_PATH:
+        if not exists(DBS_PATH):
+            mkdir(DBS_PATH)
+        db = DBS_PATH + '/' + db
     if not exists(db) and not query.startswith('CREATE TABLE'):
         raise BaseNotFoundError('База данных {} не была найдена'.format(db))
     try:
