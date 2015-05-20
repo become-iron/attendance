@@ -7,7 +7,6 @@ DBS_PATH = 'groups'
 DB_STRUCTURE = \
     {
         'students': {},
-        'semesters': {},
         'attendance': {}
     }
 db_temp = ''
@@ -80,7 +79,8 @@ def add_lessons(group, semester, lessons):
     ПРИМЕЧАНИЕ: #TODO
     """
     base = _read_db(group)
-    base['semesters'].update({semester: lessons})
+    for lesson in lessons:
+        base['attendance'][semester].update({lesson: {}})
     return True if _save_db(group=group, data=base) else False
 
 
@@ -102,6 +102,18 @@ def get_groups():
     return listdir(DBS_PATH)
 
 
+def get_students(group):
+    """
+    ПОЛУЧИТЬ СПИСОК СТУДЕНТОВ
+    Принимает:
+        group (str) - номер группы
+    Возвращает:
+        (tuple) - список из имён студентов
+    """
+    base = _read_db(group)
+    return tuple(base['students'][student][0] for student in base['students'])
+
+
 def get_semesters(group):
     """
     ПОЛУЧИТЬ СПИСОК СЕМЕСТРОВ В ГРУППЕ
@@ -112,7 +124,7 @@ def get_semesters(group):
             (str) - каждый элемент
     """
     base = _read_db(group)
-    return tuple(base['semesters'].keys())
+    return tuple(semester for semester in base['attendance'])
 
 
 def get_lessons(group, semester):
@@ -125,8 +137,51 @@ def get_lessons(group, semester):
         (tuple) - список дат занятий
     """
     base = _read_db(group)
-    return base['semesters'][semester]
+    return tuple(date for date in base['attendance'][semester])
+
+
+def get_values_semester(group, semester):
+    """
+    ПОЛУЧИТЬ ДАННЫЕ ПО СЕМЕСТРУ
+    Принимает:
+        group (str) - номер группы
+        semester (str) - номер семестра
+    Возвращает:
+        (dist)
+
+    ПРИМЕР:
+        # TODO
+    """
+    base = _read_db(group)
+    students = {student: base['students'][student][0] for student in base['students']}
+    value = {}
+    for date in base['attendance'][semester]:
+        for student in base['attendance'][semester][date]:
+            value.update({date: {students[student]: base['attendance'][semester][date][student]}})
+    return value
     # WARN: проверить работоспособность
+
+
+def check_in(group, semester, date, pers_number, code=1):
+    """
+    ОТМЕТИТЬСЯ
+    Принимает:
+        group (str) - номер группы
+        semester (str) - номер семестра
+        date (str) - дата занятия
+        pers_number (str) - табельный номер
+        code (str) - код посещения
+            0 - не посещал
+            1 - без опоздания (по молчанию)
+            2 - опоздание небольшое
+            3 - большое
+    """
+    base = _read_db(group)
+    if pers_number in base['students']:
+        base['attendance'][semester][date].update({pers_number: code})
+        return True if _save_db(group, base) else False
+    else:
+        return False
 
 
 # ВНУТРЕННИЕ ФУНКЦИИ
@@ -154,4 +209,5 @@ def _save_db(group, data):
         with open(path, 'w') as base:
             base.write(db_temp)
             base.close()
+            return False
     return True
