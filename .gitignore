@@ -1,5 +1,8 @@
 .idea/
 __pycache__/
 
+
+groups/
 testing.py
 test.py
+dm/
