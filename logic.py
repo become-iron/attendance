@@ -80,7 +80,7 @@ def add_lessons(group, semester, lessons):
     """
     base = _read_db(group)
     for lesson in lessons:
-        base['attendance'].update({semester: {lesson: {}})
+        base['attendance'].update({semester: {lesson: {}}})
     return True if _save_db(group=group, data=base) else False
 
 
