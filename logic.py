@@ -49,44 +49,58 @@ def add_students(group, students):
     ...
     (pers_num, name, right))
     """
-    if isinstance(group, str) or isinstance(group, int):
-        group = str(group)
-    else:
-        raise WrongDataError('Параметр group должен быть int или str')
-    path = _path(group)
-    base = _decode_db(path)
-    print(base)
+    base = _decode_db(group)
     for student in students:
         try:
             right = student[2]
         except IndexError:
             right = 0
         base['students'].update({student[0]: (student[1], right)})
-    print(base)
-    return True if _save_db(path=path, data=base) else False
+    return True if _save_db(group=group, data=base) else False
 
 
-def get_list_of_groups():
+def get_groups():
     """
     ПОЛУЧИТЬ СПИСОК ГРУПП
     Возвращает:
-        (tuple) - список групп
+        (list) - список групп
             (str) - каждый элемент
-        Пример: ('2342', '3244, 'и3242')
     """
     # return tuple(map(lambda x: x.replace('.db', ''), listdir(DBS_PATH)))
     return listdir(DBS_PATH)
 
 
-def _decode_db(path):
+def get_semesters(group):
+    """
+    ПОЛУЧИТЬ СПИСОК СЕМЕСТРОВ В ГРУППЕ
+    Принимает:
+        (str) или (int) - номер группы
+    Возвращает:
+        (tuple) - список семестров
+            (str) - каждый элемент
+    """
+    base = _decode_db(group)
+    return tuple(base['semesters'].keys())
+
+
+def _decode_db(group):
+    if isinstance(group, str) or isinstance(group, int):
+        group = str(group)
+    else:
+        raise WrongDataError('Параметр group должен быть int или str')
+    path = _path(group)
     if not exists(path):
         raise BaseNotFoundError
-    _ = open(path, 'r').read()
-    return json.loads(_)
+    base = open(path, 'r').read()
+    return json.loads(base)
 
 
-def _save_db(path, data):
-    print(data)
+def _save_db(group, data):
+    if isinstance(group, str) or isinstance(group, int):
+        group = str(group)
+    else:
+        raise WrongDataError('Параметр group должен быть int или str')
+    path = _path(group)
     with open(path, 'w') as file:
         file.write(json.dumps(data))
         file.close()
