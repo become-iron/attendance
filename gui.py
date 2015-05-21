@@ -13,9 +13,11 @@ error_id = None
 semester_name = None
 group_name = None
 
+repeat = False  # индикатор повторного вызова стартового диалога
+
 class MainDialog(QtGui.QWidget):
     def __init__(self):
-        global choose_container, main_widget, choose_gb
+        global choose_container, choose_gb
         QtGui.QWidget.__init__(self)
 
         # название окна
@@ -57,11 +59,15 @@ class MainDialog(QtGui.QWidget):
         """
         Вызываю функцию для получения списка групп
         """
-        list_of_groups = logic.group_get()
+        list_of_groups = logic.get_groups()
         # добавляет в выпадающий список группы
         for i in list_of_groups:
             choose_group_cb.addItem(str(i))
         choose_group_cb.setEditable(True)
+
+        if repeat is True:
+            choose_group_cb.setCurrentIndex(choose_group_cb.findText(group_name_re))
+            self.choose_semester(group_name_re)
 
         # добавление списка в сетку
         choose_container.addWidget(choose_group_cb, 1, 0, 1, 1)
@@ -70,8 +76,9 @@ class MainDialog(QtGui.QWidget):
         choose_group_cb.currentIndexChanged[str].connect(self.choose_semester)
 
     def choose_semester(self, group_index):
-        global choose_container, choose_semester_cb, choose_semester_l, group_name, semester_name
+        global choose_container, choose_semester_cb, choose_semester_l, group_name, semester_name, group_name_re, semester_name_re
         group_name = group_index
+        group_name_re = group_name
 
         # семестр обнуляется
         semester_name = None
@@ -102,7 +109,7 @@ class MainDialog(QtGui.QWidget):
         Должен получить список с семестрами
         """
         try:
-            list_of_semester = logic.semester_get(group_name)
+            list_of_semester = logic.get_semesters(group_name)
             # добавляет в выпадающий список семестры
             for i in list_of_semester:
                 choose_semester_cb.addItem(str(i))
@@ -120,6 +127,12 @@ class MainDialog(QtGui.QWidget):
 
         choose_semester_cb.setEditable(True)
 
+        if repeat is True:
+            choose_semester_cb.setCurrentIndex(choose_semester_cb.findText(semester_name_re))
+            self.semester(semester_name_re)
+
+        semester_name_re = None
+
         # добавление списка в сетку
         choose_container.addWidget(choose_semester_cb, 4, 0, 1, 1)
 
@@ -132,9 +145,11 @@ class MainDialog(QtGui.QWidget):
         print(semester_name)
 
     def open(self):
-        global error_id
+        global error_id, attendance, dates_list
         # код ошибки обнуляется
         error_id = None
+
+        print(repeat, semester_name, group_name)
 
         if bool(semester_name) is False:
             error_id = 1
@@ -144,6 +159,9 @@ class MainDialog(QtGui.QWidget):
             # если ошибка возникла, окрывается окно с ошибкой
             self.error_window()
         else:
+            dates_list = logic.get_lessons(group_name, semester_name)
+            attendance = logic.get_value_semester(group_name, semester_name)
+            attendance = dict(sorted(attendance.items(), key=lambda x: x[1]))
             self.show_table()
 
     def error_window(self):
@@ -152,7 +170,11 @@ class MainDialog(QtGui.QWidget):
         em.exec_()
 
     def show_table(self):
-        print(group_name, semester_name)
+        global repeat
+        repeat = False
+        self.table = TableWindow()
+        self.table.show()
+        self.close()
 
 
 class ErrorMessage(QtGui.QMessageBox):
@@ -169,6 +191,61 @@ class ErrorMessage(QtGui.QMessageBox):
         self.setWindowTitle('Ошибка')
         self.setIcon(QtGui.QMessageBox.Warning)
         self.addButton('ОК', QtGui.QMessageBox.AcceptRole)
+
+
+class TableWindow(QtGui.QWidget):
+    def __init__(self):
+        global table_widget, attendance, dates_list
+        print(group_name, semester_name)
+        QtGui.QWidget.__init__(self)
+
+        # настройки окна
+        self.setWindowTitle('Контроль посещаемости')
+
+        # создание сетки, в которую помещаются остальные виджеты
+        table_main_container = QtGui.QGridLayout(self)
+
+        # добавление кнопки отметки
+        self.check_button = QtGui.QPushButton(u"Отметить")
+        table_main_container.addWidget(self.check_button, 0, 0, 1, 1)
+
+        # добавление кнопки преподавателя
+        self.super_button = QtGui.QPushButton(u"Зайти как препод")
+        table_main_container.addWidget(self.super_button, 1, 0, 1, 1)
+
+        # добавление кнопки смены группы
+        self.change_group_button = QtGui.QPushButton(u"Выбрать другую группу или семестр")
+        self.connect(self.change_group_button, QtCore.SIGNAL('clicked()'), self.change_group)
+        table_main_container.addWidget(self.change_group_button, 2, 0, 1, 1)
+
+        # добавление кнопки выхода
+        self.exit_button = QtGui.QPushButton(u"Выйти")
+        self.connect(self.exit_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
+        table_main_container.addWidget(self.exit_button, 3, 0, 1, 1)
+
+        # создание виджета таблицы
+        table_widget = QtGui.QTableWidget(len(attendance.keys()), len(dates_list))
+        table_main_container.addWidget(table_widget, 0, 1, 4, 1)
+
+        # заполнение шапок
+        table_widget.setHorizontalHeaderLabels(dates_list)
+        table_widget.setVerticalHeaderLabels(list(sorted(attendance.keys())))
+
+        # заполнение ячеек
+        for m, name in enumerate(sorted(attendance.keys())):
+            for n, item in enumerate(attendance[name]):
+                check_item = QtGui.QTableWidgetItem(item)
+                check_item.setTextAlignment(QtCore.Qt.AlignCenter)
+                table_widget.setItem(m, n, check_item)
+
+    def change_group(self):
+        global repeat, group_name_re, semester_name_re
+        repeat = True
+        group_name_re = group_name
+        semester_name_re = semester_name
+        self.change = MainDialog()
+        self.change.show()
+        self.close()
 
 
 if __name__ == '__main__':
