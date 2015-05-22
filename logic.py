@@ -2,6 +2,7 @@
 import json
 from os.path import exists  # проверка существования файла
 from os import mkdir, listdir
+from pprint import pprint  # TEMP
 
 DBS_PATH = 'groups'
 DB_STRUCTURE = \
@@ -49,7 +50,6 @@ def add_students(group, students):
         (pers_num, name, right))
 
         Права необязательно указывать, по умолчанию присвоится код 0
-
         Коды прав пользователей:
         0 - обычный пользователь
         1 - повышенные права
@@ -64,6 +64,7 @@ def add_students(group, students):
         except IndexError:
             right = 0
         base['students'].update({student[0]: (student[1], right)})
+    # TODO: заполнить посещаемость нулями
     return True if _save_db(group=group, data=base) else False
 
 
@@ -79,8 +80,11 @@ def add_lessons(group, semester, lessons):
     ПРИМЕЧАНИЕ: #TODO
     """
     base = _read_db(group)
+    if not semester in base['attendance']:
+        base['attendance'].update({semester: {}})
     for lesson in lessons:
-        base['attendance'].update({semester: {lesson: {}}})
+        base['attendance'][semester].update({lesson: {}})
+    # TODO: заполнить посещаемость нулями
     return True if _save_db(group=group, data=base) else False
 
 
@@ -90,6 +94,28 @@ def update_student():
     """
     pass
     # TODO
+
+
+def check_in(group, semester, date, pers_number, code=1):
+    """
+    ОТМЕТИТЬСЯ
+    Принимает:
+        group (str) - номер группы
+        semester (str) - номер семестра
+        date (str) - дата занятия
+        pers_number (str) - табельный номер
+        code (str) - код посещения
+            0 - не посещал
+            1 - без опоздания (по молчанию)
+            2 - опоздание небольшое
+            3 - большое
+    """
+    base = _read_db(group)
+    if pers_number in base['students']:
+        base['attendance'][semester][date].update({pers_number: code})
+        return True if _save_db(group, base) else False
+    else:
+        return False
 
 
 def get_groups():
@@ -102,7 +128,15 @@ def get_groups():
     return listdir(DBS_PATH)
 
 
-def get_students(group):
+def get_student_info(group, pers_number='', name=''):
+    """
+    ПОЛУЧИТЬ ИНФОРМАЦИЮ О СТУДЕНТЕ
+    """
+    pass
+    # TODO
+
+
+def get_names(group):
     """
     ПОЛУЧИТЬ СПИСОК СТУДЕНТОВ
     Принимает:
@@ -162,26 +196,19 @@ def get_values_semester(group, semester):
     # WARN: проверить работоспособность
 
 
-def check_in(group, semester, date, pers_number, code=1):
-    """
-    ОТМЕТИТЬСЯ
-    Принимает:
-        group (str) - номер группы
-        semester (str) - номер семестра
-        date (str) - дата занятия
-        pers_number (str) - табельный номер
-        code (str) - код посещения
-            0 - не посещал
-            1 - без опоздания (по молчанию)
-            2 - опоздание небольшое
-            3 - большое
-    """
-    base = _read_db(group)
-    if pers_number in base['students']:
-        base['attendance'][semester][date].update({pers_number: code})
-        return True if _save_db(group, base) else False
-    else:
-        return False
+def del_semester():
+    pass
+    # TODO
+
+
+def del_student():
+    pass
+    # TODO
+
+
+def del_lessons():
+    pass
+    # TODO
 
 
 # ВНУТРЕННИЕ ФУНКЦИИ
