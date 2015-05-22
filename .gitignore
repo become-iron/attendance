@@ -6,3 +6,11 @@ groups/
 testing.py
 test.py
 dm/
+
+
+
+build
+doc
+source
+Makefile
+make.bat
