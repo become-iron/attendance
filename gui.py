@@ -93,15 +93,15 @@ class MainDialog(QtGui.QWidget):
 
         if bool(group_name) is True:
             try:
-                choose_subject_l.deleteLater()
-                choose_subject_l.setParent(None)
-                choose_subject_cb.deleteLater()
-                choose_subject_cb.setParent(None)
-
                 choose_semester_l.deleteLater()
                 choose_semester_l.setParent(None)
                 choose_semester_cb.deleteLater()
                 choose_semester_cb.setParent(None)
+
+                choose_subject_l.deleteLater()
+                choose_subject_l.setParent(None)
+                choose_subject_cb.deleteLater()
+                choose_subject_cb.setParent(None)
             except NameError:
                 pass
             except RuntimeError:
@@ -136,10 +136,15 @@ class MainDialog(QtGui.QWidget):
                     choose_semester_l.setParent(None)
                     choose_semester_cb.deleteLater()
                     choose_semester_cb.setParent(None)
+
+                    choose_subject_l.deleteLater()
+                    choose_subject_l.setParent(None)
+                    choose_subject_cb.deleteLater()
+                    choose_subject_cb.setParent(None)
                 except NameError:
                     pass
 
-                choose_gb.resize(choose_gb.sizeHint())
+                choose_gb.adjustSize()
                 self.adjustSize()
 
             choose_semester_cb.setEditable(False)
@@ -159,15 +164,15 @@ class MainDialog(QtGui.QWidget):
 
         else:
             try:
-                choose_subject_l.deleteLater()
-                choose_subject_l.setParent(None)
-                choose_subject_cb.deleteLater()
-                choose_subject_cb.setParent(None)
-
                 choose_semester_l.deleteLater()
                 choose_semester_l.setParent(None)
                 choose_semester_cb.deleteLater()
                 choose_semester_cb.setParent(None)
+
+                choose_subject_l.deleteLater()
+                choose_subject_l.setParent(None)
+                choose_subject_cb.deleteLater()
+                choose_subject_cb.setParent(None)
             except NameError:
                 pass
             except RuntimeError:
@@ -196,6 +201,9 @@ class MainDialog(QtGui.QWidget):
                 pass
             except RuntimeError:
                 pass
+
+            choose_gb.adjustSize()
+            self.adjustSize()
 
             # создание сообщения о выборе группы
             choose_subject_l = QtGui.QLabel(u"""Выберите предмет:""", choose_gb)
@@ -227,7 +235,7 @@ class MainDialog(QtGui.QWidget):
                 except NameError:
                     pass
 
-                choose_gb.resize(choose_gb.sizeHint())
+                choose_gb.adjustSize()
                 self.adjustSize()
 
             choose_subject_cb.setEditable(False)
@@ -267,7 +275,6 @@ class MainDialog(QtGui.QWidget):
         if repeater == 3:
             repeat = False
         print(repeater, repeat)
-
 
     def open(self):
         global error_id, attendance, dates_list
