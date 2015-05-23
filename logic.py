@@ -46,6 +46,8 @@ def add(group, semester='', subject=''):
             return False
     if subject:
         path +=  '/' + subject
+        if exists(path):
+            return False
         with open(path, 'w') as file:
             file.write(json.dumps(DB_STRUCTURE))
     return True
@@ -69,12 +71,28 @@ def get_semesters(group):
     """
     ПОЛУЧИТЬ СПИСОК СЕМЕСТРОВ В ГРУППЕ
     Принимает:
-        group (str) - номер группы
+        group (str или int) - номер группы
     Возвращает:
-        (tuple) - список семестров
+        (list) - список семестров
             (str) - каждый элемент
     """
+    group = str(group)
     return listdir(DBS_PATH + '/' + group)
+
+
+def get_subjects(group, semester):
+    """
+    ПОЛУЧИТЬ СПИСОК ПРЕДМЕТОВ В СЕМЕСТРЕ
+    Принимает:
+        group (str или int) - номер группы
+        semester (str или int) - номер семестра
+    Возвращает:
+        (list) - список предметов
+            (str) - каждый элемент
+    """
+    group = str(group)
+    semester = str(semester)
+    return listdir(DBS_PATH + '/' + group + '/' + semester)
 
 
 class Subject:
