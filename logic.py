@@ -20,7 +20,7 @@ class BaseNotFoundError(Exception):
     pass
 
 
-def add(group, semester=''):
+def add(group, semester='', subject=''):
     """
     ДОБАВИТЬ ГРУППУ И/ИЛИ СЕМЕСТР
     Принимает:
@@ -29,6 +29,8 @@ def add(group, semester=''):
     Возвращает:
         (bool) - успешность операции
     """
+    group = str(group)
+    semester = str(semester)
     if not exists(DBS_PATH):  # если нет папки с группами, создать
         mkdir(DBS_PATH)
     path = DBS_PATH + '/' + group
@@ -40,10 +42,12 @@ def add(group, semester=''):
         path += '/' + semester
         if not exists(path):
             mkdir(path)
-        else:
+        elif not subject:
             return False
-    with open(path, 'w') as file:
-        file.write(json.dumps(DB_STRUCTURE))
+    if subject:
+        path +=  '/' + subject
+        with open(path, 'w') as file:
+            file.write(json.dumps(DB_STRUCTURE))
     return True
     # FIXME: оптимизировать код
 
@@ -147,7 +151,7 @@ class Subject:
             pers_number (str или int)  - табельный номер
             code (str или int) - код посещения
                 0 - не посещал
-                1 - без опоздания (по молчанию)
+                1 - без опоздания (по умолчанию)
                 2 - опоздание небольшое
                 3 - большое
         """
