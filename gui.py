@@ -593,8 +593,7 @@ class CheckWindow(QtGui.QTableWidget):
         #         check_item = QtGui.QTableWidgetItem(item)
         #         check_item.setTextAlignment(QtCore.Qt.AlignCenter)
         #         self.setItem(m, n, check_item)
-        print(self.rowCount())
-        cb_list = QtGui.QListWidget(self)
+        
         for i in range(self.rowCount()):
             item_cb = QtGui.QComboBox(self)
             item_cb.addItem(None)
