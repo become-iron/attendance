@@ -187,14 +187,14 @@ class Subject:
         """
         ПОЛУЧИТЬ ИНФОРМАЦИЮ О СТУДЕНТЕ
         """
-        pass
+        pers_number = str(pers_number)
+        if pers_number:
+            return self.base['students'][pers_number][0]
         # TODO
 
     def get_names(self):
         """
         ПОЛУЧИТЬ СПИСОК СТУДЕНТОВ
-        Принимает:
-            group (str) - номер группы
         Возвращает:
             (tuple) - список из имён студентов
         """
@@ -203,9 +203,6 @@ class Subject:
     def get_lessons(self):
         """
         ПОЛУЧИТЬ СПИСОК ЗАНЯТИЙ (ДАТЫ) В СЕМЕСТРЕ
-        Принимает:
-            group (str) - номер группы
-            semester (str) - номер семестра
         Возвращает:
             (tuple) - список дат занятий
         """
@@ -214,8 +211,6 @@ class Subject:
     def get_values_semester(self):
         """
         ПОЛУЧИТЬ ДАННЫЕ ПО СЕМЕСТРУ (ИМЕНА, ДАТЫ, КОДЫ ПОСЕЩЕНИЙ)
-        Принимает:
-            semester (str) - номер семестра
         Возвращает:
             (diсt)
 
