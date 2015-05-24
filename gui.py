@@ -616,12 +616,6 @@ class CheckWindow(QtGui.QTableWidget):
         #print(student_num)
         #base.check_in(date_today, student_num, code)
 
-    def chachacha(self, item):
-        print('dfdfdfdf')
-        row = item.row()
-        col = item.column()
-        print(row, col)
-
 
 if __name__ == '__main__':
     sip.setdestroyonexit(False)
