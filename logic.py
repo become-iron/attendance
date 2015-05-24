@@ -22,15 +22,17 @@ class BaseNotFoundError(Exception):
 
 def add(group, semester='', subject=''):
     """
-    ДОБАВИТЬ ГРУППУ И/ИЛИ СЕМЕСТР
+    ДОБАВИТЬ ГРУППУ И/ИЛИ СЕМЕСТР И/ИЛИ ПРЕДМЕТ
     Принимает:
         group (str или int) - номер группы
         semester (str или int), необязательный - номер группы
+        subject (str), необязательный - название предмета
     Возвращает:
         (bool) - успешность операции
     """
     group = str(group)
     semester = str(semester)
+    subject = subject.upper()
     if not exists(DBS_PATH):  # если нет папки с группами, создать
         mkdir(DBS_PATH)
     path = DBS_PATH + '/' + group
@@ -45,7 +47,7 @@ def add(group, semester='', subject=''):
         elif not subject:
             return False
     if subject:
-        path +=  '/' + subject
+        path += '/' + subject
         if exists(path):
             return False
         with open(path, 'w') as file:
@@ -105,7 +107,7 @@ class Subject:
     def __init__(self, group, semester, subject):
         self.group = str(group)
         self.semester = str(semester)
-        self.subject = subject
+        self.subject = subject.upper()
         self.path = self._path()
         if not exists(self.path):
             raise BaseNotFoundError('База данных \"%s\" не найдена' % self.path)
@@ -148,9 +150,9 @@ class Subject:
             (bool) - успешность операции
         ПРИМЕЧАНИЕ: #TODO
         """
-
         for lesson in lessons:
-            self.base['attendance'].update({lesson: {}})
+            if not lesson in self.base['attendance']:
+                self.base['attendance'].update({lesson: {}})
         # TODO: заполнить посещаемость нулями
         return True if self._save_db() else False
 
@@ -213,22 +215,15 @@ class Subject:
         """
         ПОЛУЧИТЬ ДАННЫЕ ПО СЕМЕСТРУ (ИМЕНА, ДАТЫ, КОДЫ ПОСЕЩЕНИЙ)
         Принимает:
-            group (str) - номер группы
             semester (str) - номер семестра
         Возвращает:
-            (dist)
+            (diсt)
 
         ПРИМЕР:
             # TODO
         """
         students = {student: self.base['students'][student][0] for student in self.base['students']}
-        value = {}
-        for date in self.base['attendance']:
-            for student in self.base['attendance'][date]:
-                value.update({date: {students[student]: self.base['attendance'][date][student]}})
-        return value
-        # WARN: проверить работоспособность
-        # REVIEW: посмотреть, нельзя ли переписать
+        return {date: {students[student]: self.base['attendance'][date][student] for student in self.base['attendance'][date]} for date in self.base['attendance']}
 
     def del_semester(self):
         pass
