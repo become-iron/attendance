@@ -17,6 +17,7 @@ subject_name = None
 repeat = False  # индикатор повторного вызова стартового диалога
 repeater = 0  # счетчик количества использований
 
+
 class MainDialog(QtGui.QWidget):
     def __init__(self):
         global choose_container, choose_gb, repeater
@@ -31,7 +32,12 @@ class MainDialog(QtGui.QWidget):
         # создание кнопки для выхода
         self.exit_button = QtGui.QPushButton(u"Выйти")
         self.connect(self.exit_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
-        main_container.addWidget(self.exit_button, 2, 0, 1, 1)
+        main_container.addWidget(self.exit_button, 3, 0, 1, 1)
+
+        # создание кнопки для ввода данных
+        self.create_button = QtGui.QPushButton(u"Добавить")
+        self.connect(self.create_button, QtCore.SIGNAL('clicked()'), self.create_window)
+        main_container.addWidget(self.create_button, 2, 0, 1, 1)
 
         # создание кнопки для ввода данных
         self.open_button = QtGui.QPushButton(u"Открыть")
@@ -55,12 +61,11 @@ class MainDialog(QtGui.QWidget):
         # создание выпадающего списка о выборе группы
         choose_group_cb = QtGui.QComboBox(choose_gb)
         choose_group_cb.clear()
+
         # добавляет пустую строку, чтобы изначально группа не была выбрана
         choose_group_cb.addItem(None)
 
-        """
-        Вызываю функцию для получения списка групп
-        """
+        # вызываю функцию для получения списка групп
         list_of_groups = logic.get_groups()
         # добавляет в выпадающий список группы
         for i in list_of_groups:
@@ -277,7 +282,7 @@ class MainDialog(QtGui.QWidget):
         print(repeater, repeat)
 
     def open(self):
-        global error_id, attendance, dates_list
+        global error_id, attendance, names, dates_list, base
         # код ошибки обнуляется
         error_id = None
 
@@ -293,9 +298,13 @@ class MainDialog(QtGui.QWidget):
             # если ошибка возникла, окрывается окно с ошибкой
             self.error_window()
         else:
-            dates_list = logic.get_lessons(group_name, semester_name)
-            attendance = logic.get_values_semester(group_name, semester_name)
-            attendance = dict(sorted(attendance.items(), key=lambda x: x[1]))
+            base = logic.Subject(group_name, semester_name, subject_name)
+            attendance = base.get_values_semester()
+            print(attendance)
+            names = sorted(base.get_names())
+            print(names)
+            dates_list = sorted(list(attendance.keys()))
+            print(dates_list)
             self.show_table()
 
     def error_window(self):
@@ -303,11 +312,16 @@ class MainDialog(QtGui.QWidget):
         em.show()
         em.exec_()
 
+    def create_window(self):
+        self.cr = CreateWindow()
+        self.cr.show()
+        self.close()
+
     def show_table(self):
         global repeat
         repeat = False
-        self.table = TableWindow()
-        self.table.show()
+        self.tb = TableWindow()
+        self.tb.show()
         self.close()
 
 
@@ -329,50 +343,175 @@ class ErrorMessage(QtGui.QMessageBox):
         self.addButton('ОК', QtGui.QMessageBox.AcceptRole)
 
 
-class TableWindow(QtGui.QWidget):
+class CreateWindow(QtGui.QWidget):
+    def __init__(self):
+        QtGui.QWidget.__init__(self)
+
+        # название окна
+        self.setWindowTitle('Добавить группу, семестр, предмет')
+
+        # создание сетки, в которую помещаются остальные виджеты
+        create_container = QtGui.QGridLayout(self)
+
+        # создание кнопки для выхода в стартовое окно
+        self.quit_button = QtGui.QPushButton(u"Вернуться")
+        self.connect(self.quit_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
+        create_container.addWidget(self.quit_button, 3, 0, 1, 1)
+
+        # создание кнопки для выхода
+        self.exit_button = QtGui.QPushButton(u"Выйти")
+        self.connect(self.exit_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
+        create_container.addWidget(self.exit_button, 4, 0, 1, 1)
+
+        # ================================================================
+
+        # создание рамки для ввода группы
+        create_group_gb = QtGui.QGroupBox('Группа', self)
+        # добавление рамки в сетку
+        create_container.addWidget(create_group_gb, 0, 0, 1, 1)
+
+        # создание сетки для рамки "группа"
+        create_group_container = QtGui.QGridLayout(create_group_gb)
+
+        # создание сообщения о выборе группы
+        choose_group_l = QtGui.QLabel(u"""Введите номер группы:""", choose_gb)
+        create_group_container.addWidget(choose_group_l, 0, 0, 1, 1)
+
+        # создание строки для ввода номера группы
+        choose_group_le = QtGui.QLineEdit()
+        create_group_container.addWidget(choose_group_le, 1, 0, 1, 1)
+
+        # создание кнопки добавления
+        self.add_group_button = QtGui.QPushButton(u"Добавить")
+        self.connect(self.add_group_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
+        create_group_container.addWidget(self.add_group_button, 2, 0, 1, 1)
+
+        # ================================================================
+
+        # создание рамки для ввода семестра
+        create_semester_gb = QtGui.QGroupBox('Семестр', self)
+        # добавление рамки в сетку
+        create_container.addWidget(create_semester_gb, 1, 0, 1, 1)
+
+        # создание сетки для рамки "группа"
+        create_semester_container = QtGui.QGridLayout(create_semester_gb)
+
+        # создание сообщения о выборе группы
+        choose_semester_l = QtGui.QLabel(u"""Введите номер группы:""", choose_gb)
+        create_semester_container.addWidget(choose_semester_l, 0, 0, 1, 1)
+
+        # создание выпадающего списка о выборе группы
+        choose_group_cb = QtGui.QComboBox(choose_gb)
+        choose_group_cb.clear()
+
+        # добавляет пустую строку, чтобы изначально группа не была выбрана
+        choose_group_cb.addItem(None)
+
+        # вызываю функцию для получения списка групп
+        list_of_groups = logic.get_groups()
+        # добавляет в выпадающий список группы
+        for i in list_of_groups:
+            choose_group_cb.addItem(str(i))
+        choose_group_cb.setEditable(False)
+
+        # создание строки для ввода номера семестра
+        choose_semester_le = QtGui.QLineEdit()
+        create_semester_container.addWidget(choose_semester_le, 1, 0, 1, 1)
+
+        # создание кнопки добавления
+        self.add_semester_button = QtGui.QPushButton(u"Добавить")
+        self.connect(self.add_semester_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
+        create_semester_container.addWidget(self.add_semester_button, 2, 0, 1, 1)
+
+        # ================================================================
+
+        # создание рамки для ввода предмета
+        create_subject_gb = QtGui.QGroupBox('Предмет', self)
+        # добавление рамки в сетку
+        create_container.addWidget(create_subject_gb, 2, 0, 1, 1)
+
+        # создание выпадающего списка о выборе группы
+        choose_group_cb = QtGui.QComboBox(choose_gb)
+        choose_group_cb.clear()
+
+
+class TableWindow(QtGui.QMainWindow):
     def __init__(self):
         global table_widget, attendance, dates_list
         print(group_name, semester_name, subject_name)
-        QtGui.QWidget.__init__(self)
+        QtGui.QMainWindow.__init__(self)
 
         # настройки окна
         self.setWindowTitle('Контроль посещаемости')
 
-        # создание сетки, в которую помещаются остальные виджеты
-        table_main_container = QtGui.QGridLayout(self)
-
-        # добавление кнопки отметки
-        self.check_button = QtGui.QPushButton(u"Отметить")
-        table_main_container.addWidget(self.check_button, 0, 0, 1, 1)
-
-        # добавление кнопки преподавателя
-        self.super_button = QtGui.QPushButton(u"Зайти как препод")
-        table_main_container.addWidget(self.super_button, 1, 0, 1, 1)
-
-        # добавление кнопки смены группы
-        self.change_group_button = QtGui.QPushButton(u"Выбрать другую группу или семестр")
-        self.connect(self.change_group_button, QtCore.SIGNAL('clicked()'), self.change_group)
-        table_main_container.addWidget(self.change_group_button, 2, 0, 1, 1)
-
-        # добавление кнопки выхода
-        self.exit_button = QtGui.QPushButton(u"Выйти")
-        self.connect(self.exit_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
-        table_main_container.addWidget(self.exit_button, 3, 0, 1, 1)
+        # отображается меню
+        self.menuBar()
 
         # создание виджета таблицы
-        table_widget = QtGui.QTableWidget(len(attendance.keys()), len(dates_list))
-        table_main_container.addWidget(table_widget, 0, 1, 4, 1)
+        table_widget = QtGui.QTableWidget(len(names), len(attendance.keys()))
+        self.setCentralWidget(table_widget)
 
         # заполнение шапок
         table_widget.setHorizontalHeaderLabels(dates_list)
-        table_widget.setVerticalHeaderLabels(list(sorted(attendance.keys())))
+        table_widget.setVerticalHeaderLabels(list(names))
 
         # заполнение ячеек
-        for m, name in enumerate(sorted(attendance.keys())):
-            for n, item in enumerate(attendance[name]):
-                check_item = QtGui.QTableWidgetItem(item)
+        for m, date in enumerate(dates_list):
+            print(attendance[date])
+            for n, item in enumerate(names):
+                check_item = QtGui.QTableWidgetItem(attendance[date].get(item))
+                check_item.setFlags(QtCore.Qt.ItemIsEnabled)
                 check_item.setTextAlignment(QtCore.Qt.AlignCenter)
-                table_widget.setItem(m, n, check_item)
+                table_widget.setItem(n, m, check_item)
+
+        table_widget.resizeColumnsToContents()
+        table_widget.resizeRowsToContents()
+
+        # создается строка статуса
+        self.statusBar()
+
+        # добавление кнопки отметки
+        check_button = QtGui.QAction(u"Отметить", self)
+        check_button.setShortcut('Ctrl+C')
+        check_button.setStatusTip('Зайти под своим табельным номером и отметить себя')
+        self.connect(check_button, QtCore.SIGNAL('triggered()'), self.check_login)
+
+        # добавление кнопки преподавателя
+        super_button = QtGui.QAction(u"Зайти как препод", self)
+        super_button.setShortcut('Ctrl+M')
+        super_button.setStatusTip('Зайти как староста или преподаватель')
+        self.connect(super_button, QtCore.SIGNAL('triggered()'), self.super)
+
+        # добавление кнопки смены группы
+        change_group_button = QtGui.QAction(u"Выбрать другую группу или семестр", self)
+        change_group_button.setShortcut('Ctrl+G')
+        change_group_button.setStatusTip('Вернуться в меню выбора группы')
+        self.connect(change_group_button, QtCore.SIGNAL('triggered()'), self.change_group)
+
+        # добавление кнопки выхода
+        exit_button = QtGui.QAction(u"Выйти", self)
+        exit_button.setShortcut('Ctrl+Q')
+        exit_button.setStatusTip('Выйти из программы')
+        self.connect(exit_button, QtCore.SIGNAL('triggered()'), QtCore.SLOT('close()'))
+
+        # создание панели инструментов
+        menu_bar = self.menuBar()
+
+        # создание кнопки файл
+        file = menu_bar.addMenu('&Меню')
+
+        # добавление кнопки выхода в меню
+        file.addAction(check_button)
+        file.addAction(super_button)
+        file.addAction(change_group_button)
+        file.addAction(exit_button)
+
+    def check_login(self):
+        self.chlg = CheckLoginWindow()
+        self.chlg.show()
+
+    def super(self):
+        pass
 
     def change_group(self):
         global repeat, group_name_re, semester_name_re, subject_name_re, repeater
@@ -384,6 +523,104 @@ class TableWindow(QtGui.QWidget):
         self.change = MainDialog()
         self.change.show()
         self.close()
+
+
+class CheckLoginWindow(QtGui.QWidget):
+    def __init__(self):
+        QtGui.QWidget.__init__(self)
+
+        # название окна
+        self.setWindowTitle('Введите свой табельный номер')
+
+        # создание сетки, в которую помещаются остальные виджеты
+        login_container = QtGui.QGridLayout(self)
+
+        # ================================================================
+
+        # создание рамки для ввода группы
+        create_group_gb = QtGui.QGroupBox('Группа', self)
+        # добавление рамки в сетку
+        login_container.addWidget(create_group_gb, 0, 0, 1, 1)
+
+        # создание сетки для рамки
+        login_pass_container = QtGui.QGridLayout(create_group_gb)
+
+        # создание сообщения о вводе логина
+        login_l = QtGui.QLabel(u"""Введите свой табельный номер:""", choose_gb)
+        login_pass_container.addWidget(login_l, 0, 0, 1, 1)
+
+        # создание строки для ввода номера группы
+        login_le = QtGui.QLineEdit()
+        login_pass_container.addWidget(login_le, 1, 0, 1, 1)
+
+        # создание кнопки добавления
+        self.add_group_button = QtGui.QPushButton(u"Принять")
+        self.connect(self.add_group_button, QtCore.SIGNAL('clicked()'), self.check)
+        login_container.addWidget(self.add_group_button, 2, 0, 1, 1)
+
+        # создание кнопки для выхода
+        self.exit_button = QtGui.QPushButton(u"Выйти")
+        self.connect(self.exit_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
+        login_container.addWidget(self.exit_button, 3, 0, 1, 1)
+
+    def check(self):
+        self.ch = CheckWindow()
+        self.ch.show()
+        self.close()
+
+class CheckWindow(QtGui.QTableWidget):
+    def __init__(self):
+        global attendance, dates_list, date_today, item_cb
+        print(group_name, semester_name, subject_name)
+        QtGui.QTableWidget.__init__(self, len(names), 1)
+        date_today = '1.1'
+        date_now = []
+        date_now.append(date_today)
+
+        for i in range(len(dates_list)):
+            if dates_list[i] == date_now:
+                print(i)
+
+
+        # заполнение шапок
+        print(date_now)
+        self.setHorizontalHeaderLabels(date_now)
+        self.setVerticalHeaderLabels(list(names))
+
+        # # заполнение ячеек
+        # for m, name in enumerate(names):
+        #     for n, item in enumerate(attendance[name]):
+        #         check_item = QtGui.QTableWidgetItem(item)
+        #         check_item.setTextAlignment(QtCore.Qt.AlignCenter)
+        #         self.setItem(m, n, check_item)
+        print(self.rowCount())
+        cb_list = QtGui.QListWidget(self)
+        for i in range(self.rowCount()):
+            item_cb = QtGui.QComboBox(self)
+            item_cb.addItem(None)
+            for j in [0,1,2,3]:
+                item_cb.addItem(str(j))
+            item_cb.setEditable(False)
+            item_cb.currentIndexChanged[str].connect(self.check_in)
+            cb_list.setItemWidget(QtGui.QListWidgetItem, item_cb)
+            # при выборе значения из списка вызывает функцию замены значения посещения
+            self.setCellWidget(i, 0, item_cb)
+
+        self.resizeColumnsToContents()
+
+    def check_in(self, code):
+        print(code)
+        index = self.indexAt(item_cb.pos())
+        print(index.row(), index.column())
+        #student_num = base.get_student_info(name=self.verticalHeaderItem(int(row)).text())
+        #print(student_num)
+        #base.check_in(date_today, student_num, code)
+
+    def chachacha(self, item):
+        print('dfdfdfdf')
+        row = item.row()
+        col = item.column()
+        print(row, col)
 
 
 if __name__ == '__main__':
