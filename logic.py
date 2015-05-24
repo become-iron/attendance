@@ -190,6 +190,10 @@ class Subject:
         pers_number = str(pers_number)
         if pers_number:
             return self.base['students'][pers_number][0]
+        if name:
+            for student in self.base['students']:
+                if self.base['students'][student][0] == name:
+                    return student
         # TODO
 
     def get_names(self):
