@@ -609,8 +609,6 @@ class CheckWindow(QtGui.QTableWidget):
 
     def check_in(self, code):
         print(code)
-        index = self.indexAt(item_cb.pos())
-        print(index.row(), index.column())
         #student_num = base.get_student_info(name=self.verticalHeaderItem(int(row)).text())
         #print(student_num)
         #base.check_in(date_today, student_num, code)
