@@ -141,10 +141,11 @@ class Subject:
             except IndexError:
                 right = 0
             if student[0] not in self.students:  # е. студента нет ещё в базе (по таб. номеру)
-                self.students.update({student[0]: (student[1], right)})
+                self.students.update({str(student[0]): (student[1], right)})
+                for date in self.get_lessons():  # заполнение посещаемости нулями
+                    self.check_in(date, student[0], 0)
             else:
                 logging.warning('Этот таб. номер уже есть в базе ({}, {})'.format(student[0], student[1]))
-        # TODO: заполнить посещаемость нулями
         return True if self._save_db(path=self.path_s, base=self.students) else False
 
     def add_lessons(self, lessons):
@@ -159,9 +160,10 @@ class Subject:
         for lesson in lessons:
             if lesson not in self.attendance:  # е. такой даты ещё нет
                 self.attendance.update({lesson: {}})
+                for student in self.students.keys():  # заполнение посещаемости нулями
+                    self.check_in(lesson, student, 0)
             else:
                 logging.warning('Дата %s уже есть в базе' % lesson)
-        # TODO: заполнить посещаемость нулями
         return True if self._save_db() else False
 
     def update_student(self):
@@ -189,7 +191,7 @@ class Subject:
             self.attendance[date].update({pers_number: code})
             return True if self._save_db() else False
         else:
-            logging.warning('Персональный номер {} или табельный номер {} не найдены'.format(pers_number, date))
+            logging.warning('Табельный номер {} или дата {} не найдены'.format(pers_number, date))
             return False
 
     def get_student_info(self, pers_number='', name='', right=False):
