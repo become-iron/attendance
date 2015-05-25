@@ -20,7 +20,10 @@ repeater = 0  # счетчик количества использований
 
 class MainDialog(QtGui.QWidget):
     def __init__(self):
-        global choose_container, choose_gb, repeater
+        global choose_container
+        global choose_semester_cb, choose_subject_cb    # выпадающие списки
+        global repeater
+
         QtGui.QWidget.__init__(self)
 
         # название окна
@@ -44,8 +47,8 @@ class MainDialog(QtGui.QWidget):
         self.connect(self.open_button, QtCore.SIGNAL('clicked()'), self.open)
         main_container.addWidget(self.open_button, 1, 0, 1, 1)
 
-        # создание рамки для ввода id
-        choose_gb = QtGui.QGroupBox('Выберите группу и семестр', self)
+        # создание рамки для выбора группы/семестра/предмета
+        choose_gb = QtGui.QGroupBox('Выберите группу, семестр и предмет', self)
         choose_gb.setAlignment(QtCore.Qt.AlignCenter)
 
         # добавление рамки в сетку
@@ -65,11 +68,18 @@ class MainDialog(QtGui.QWidget):
         # добавляет пустую строку, чтобы изначально группа не была выбрана
         choose_group_cb.addItem(None)
 
+        # добавление выпадающего списка о выборе группы в сетку
+        choose_container.addWidget(choose_group_cb, 1, 0, 1, 1)
+
+        # при выборе значения из списка вызывает функцию по поиску семестров
+        choose_group_cb.currentIndexChanged[str].connect(self.choose_semester)
+
         # вызываю функцию для получения списка групп
         list_of_groups = logic.get_groups()
         # добавляет в выпадающий список группы
         for i in list_of_groups:
             choose_group_cb.addItem(str(i))
+
         choose_group_cb.setEditable(False)
 
         if repeat is True:
@@ -77,14 +87,49 @@ class MainDialog(QtGui.QWidget):
             choose_group_cb.setCurrentIndex(choose_group_cb.findText(group_name_re))
             self.choose_semester(group_name_re)
 
-        # добавление списка в сетку
-        choose_container.addWidget(choose_group_cb, 1, 0, 1, 1)
+        # ============================================================================
+
+        # создание сообщения о выборе семестра
+        choose_semester_l = QtGui.QLabel(u"""Выберите номер семестра:""", choose_gb)
+        choose_container.addWidget(choose_semester_l, 2, 0, 1, 1)
+
+        # создание выпадающего списка о выборе семестра
+        choose_semester_cb = QtGui.QComboBox(choose_gb)
+
+        choose_semester_cb.setEditable(False)
+        choose_semester_cb.setEnabled(False)
+
+        # добавление выпадающего списка о выборе семестра в сетку
+        choose_container.addWidget(choose_semester_cb, 3, 0, 1, 1)
 
         # при выборе значения из списка вызывает функцию по поиску семестров
-        choose_group_cb.currentIndexChanged[str].connect(self.choose_semester)
+        choose_semester_cb.currentIndexChanged[str].connect(self.choose_subject)
+
+        # ============================================================================
+
+        # создание сообщения о выборе группы
+        choose_subject_l = QtGui.QLabel(u"""Выберите предмет:""", choose_gb)
+        choose_container.addWidget(choose_subject_l, 4, 0, 1, 1)
+
+        # создание выпадающего списка о выборе группы
+        choose_subject_cb = QtGui.QComboBox(choose_gb)
+
+        # делает неактивным и неизменяемым
+        choose_subject_cb.setEditable(False)
+        choose_subject_cb.setEnabled(False)
+
+        # добавление списка в сетку
+        choose_container.addWidget(choose_subject_cb, 5, 0, 1, 1)
+
+        # при выборе значения из списка вызывает функцию по поиску семестров
+        choose_subject_cb.currentIndexChanged[str].connect(self.subject)
 
     def choose_semester(self, group_index):
-        global choose_container, choose_semester_cb, choose_semester_l, group_name, semester_name, group_name_re, semester_name_re, subject_name, repeater
+        global choose_container     # главная сетка
+        global group_name, semester_name, subject_name  # выбранные значения
+        global group_name_re, semester_name_re     # сохраненные значения
+        global repeater     # счетчик количества использований
+
         group_name = group_index
         group_name_re = group_name
 
@@ -97,62 +142,20 @@ class MainDialog(QtGui.QWidget):
         print(group_name)
 
         if bool(group_name) is True:
-            try:
-                choose_semester_l.deleteLater()
-                choose_semester_l.setParent(None)
-                choose_semester_cb.deleteLater()
-                choose_semester_cb.setParent(None)
-
-                choose_subject_l.deleteLater()
-                choose_subject_l.setParent(None)
-                choose_subject_cb.deleteLater()
-                choose_subject_cb.setParent(None)
-            except NameError:
-                pass
-            except RuntimeError:
-                pass
-
-            choose_gb.adjustSize()
-            self.adjustSize()
-
-            # создание сообщения о выборе группы
-            choose_semester_l = QtGui.QLabel(u"""Выберите номер семестра:""", choose_gb)
-            choose_container.addWidget(choose_semester_l, 3, 0, 1, 1)
-
-            # создание выпадающего списка о выборе группы
-            choose_semester_cb = QtGui.QComboBox(choose_gb)
+            # делает активным
+            choose_semester_cb.setEnabled(True)
             choose_semester_cb.clear()
             # добавляет пустую строку, чтобы изначально группа не была выбрана
             choose_semester_cb.addItem(None)
-
             """
             Вызываю функцию для получения списка семестров
             Оправляю номер группы
             Должен получить список с семестрами
             """
-            try:
-                list_of_semester = logic.get_semesters(group_name)
-                # добавляет в выпадающий список семестры
-                for i in list_of_semester:
-                    choose_semester_cb.addItem(str(i))
-            except logic.WrongDataError:
-                try:
-                    choose_semester_l.deleteLater()
-                    choose_semester_l.setParent(None)
-                    choose_semester_cb.deleteLater()
-                    choose_semester_cb.setParent(None)
-
-                    choose_subject_l.deleteLater()
-                    choose_subject_l.setParent(None)
-                    choose_subject_cb.deleteLater()
-                    choose_subject_cb.setParent(None)
-                except NameError:
-                    pass
-
-                choose_gb.adjustSize()
-                self.adjustSize()
-
-            choose_semester_cb.setEditable(False)
+            list_of_semester = logic.get_semesters(group_name)
+            # добавляет в выпадающий список семестры
+            for i in list_of_semester:
+                choose_semester_cb.addItem(str(i))
 
             if repeat is True:
                 repeater += 1
@@ -160,34 +163,16 @@ class MainDialog(QtGui.QWidget):
                 self.choose_subject(semester_name_re)
 
             semester_name_re = None
-
-            # добавление списка в сетку
-            choose_container.addWidget(choose_semester_cb, 4, 0, 1, 1)
-
-            # при выборе значения из списка вызывает функцию по поиску семестров
-            choose_semester_cb.currentIndexChanged[str].connect(self.choose_subject)
-
         else:
-            try:
-                choose_semester_l.deleteLater()
-                choose_semester_l.setParent(None)
-                choose_semester_cb.deleteLater()
-                choose_semester_cb.setParent(None)
-
-                choose_subject_l.deleteLater()
-                choose_subject_l.setParent(None)
-                choose_subject_cb.deleteLater()
-                choose_subject_cb.setParent(None)
-            except NameError:
-                pass
-            except RuntimeError:
-                pass
-
-            choose_gb.adjustSize()
-            self.adjustSize()
+            # делает неактивным
+            choose_semester_cb.setEnabled(False)
+            choose_semester_cb.setCurrentIndex(0)
 
     def choose_subject(self, semester_index):
-        global semester_name, choose_container, choose_subject_cb, choose_subject_l, group_name, subject_name, group_name_re, subject_name_re, semester_name_re, repeater
+        global choose_container     # главная сетка
+        global group_name, semester_name, subject_name  # выбранные значения
+        global group_name_re, semester_name_re, subject_name_re     # сохраненные значения
+        global repeater     # счетчик количества использований
 
         semester_name = semester_index
         semester_name_re = semester_name
@@ -197,29 +182,12 @@ class MainDialog(QtGui.QWidget):
         # предмет обнуляется
         subject_name = None
         if bool(semester_name) is True:
-            try:
-                choose_subject_l.deleteLater()
-                choose_subject_l.setParent(None)
-                choose_subject_cb.deleteLater()
-                choose_subject_cb.setParent(None)
-            except NameError:
-                pass
-            except RuntimeError:
-                pass
-
-            choose_gb.adjustSize()
-            self.adjustSize()
-
-            # создание сообщения о выборе группы
-            choose_subject_l = QtGui.QLabel(u"""Выберите предмет:""", choose_gb)
-            choose_container.addWidget(choose_subject_l, 5, 0, 1, 1)
-
-            # создание выпадающего списка о выборе группы
-            choose_subject_cb = QtGui.QComboBox(choose_gb)
+            # делает активным
+            choose_subject_cb.setEnabled(True)
             choose_subject_cb.clear()
+
             # добавляет пустую строку, чтобы изначально группа не была выбрана
             choose_subject_cb.addItem(None)
-
             """
             Вызываю функцию для получения списка семестров
             Оправляю номер группы
@@ -232,16 +200,7 @@ class MainDialog(QtGui.QWidget):
                 for i in list_of_subject:
                     choose_subject_cb.addItem(str(i))
             except logic.WrongDataError:
-                try:
-                    choose_subject_l.deleteLater()
-                    choose_subject_l.setParent(None)
-                    choose_subject_cb.deleteLater()
-                    choose_subject_cb.setParent(None)
-                except NameError:
-                    pass
-
-                choose_gb.adjustSize()
-                self.adjustSize()
+                pass
 
             choose_subject_cb.setEditable(False)
 
@@ -251,26 +210,10 @@ class MainDialog(QtGui.QWidget):
                 self.subject(subject_name_re)
 
             subject_name_re = None
-
-            # добавление списка в сетку
-            choose_container.addWidget(choose_subject_cb, 6, 0, 1, 1)
-
-            # при выборе значения из списка вызывает функцию по поиску семестров
-            choose_subject_cb.currentIndexChanged[str].connect(self.subject)
-
         else:
-            try:
-                choose_subject_l.deleteLater()
-                choose_subject_l.setParent(None)
-                choose_subject_cb.deleteLater()
-                choose_subject_cb.setParent(None)
-            except NameError:
-                pass
-            except RuntimeError:
-                pass
-
-            choose_gb.adjustSize()
-            self.adjustSize()
+            # делает неактивным
+            choose_subject_cb.setEnabled(False)
+            choose_subject_cb.setCurrentIndex(0)
 
     def subject(self, subject_index):
         global subject_name, repeat
@@ -345,6 +288,8 @@ class ErrorMessage(QtGui.QMessageBox):
 
 class CreateWindow(QtGui.QWidget):
     def __init__(self):
+        global create_choose_group_cb, create_choose_group_sem_cb, create_choose_semester_cb  # выпадающие списки
+        global create_choose_group_le, create_choose_semester_le, create_choose_subject_le  # строки ввода
         QtGui.QWidget.__init__(self)
 
         # название окна
@@ -355,7 +300,7 @@ class CreateWindow(QtGui.QWidget):
 
         # создание кнопки для выхода в стартовое окно
         self.quit_button = QtGui.QPushButton(u"Вернуться")
-        self.connect(self.quit_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
+        self.connect(self.quit_button, QtCore.SIGNAL('clicked()'), self.return_to_menu)
         create_container.addWidget(self.quit_button, 3, 0, 1, 1)
 
         # создание кнопки для выхода
@@ -373,71 +318,224 @@ class CreateWindow(QtGui.QWidget):
         # создание сетки для рамки "группа"
         create_group_container = QtGui.QGridLayout(create_group_gb)
 
-        # создание сообщения о выборе группы
-        choose_group_l = QtGui.QLabel(u"""Введите номер группы:""", choose_gb)
-        create_group_container.addWidget(choose_group_l, 0, 0, 1, 1)
+        # --------------------------------------------------------------------------------
+
+        # создание сообщения о вводе группы
+        create_choose_group_l = QtGui.QLabel(u"""Введите номер группы:""", create_group_gb)
+        create_group_container.addWidget(create_choose_group_l, 0, 0, 1, 1)
 
         # создание строки для ввода номера группы
-        choose_group_le = QtGui.QLineEdit()
-        create_group_container.addWidget(choose_group_le, 1, 0, 1, 1)
+        create_choose_group_le = QtGui.QLineEdit()
+        create_group_container.addWidget(create_choose_group_le, 1, 0, 1, 1)
 
         # создание кнопки добавления
         self.add_group_button = QtGui.QPushButton(u"Добавить")
-        self.connect(self.add_group_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
+        self.connect(self.add_group_button, QtCore.SIGNAL('clicked()'), self.create_add_group)
         create_group_container.addWidget(self.add_group_button, 2, 0, 1, 1)
 
-        # ================================================================
+        # =================================================================================
+        # =================================================================================
 
         # создание рамки для ввода семестра
         create_semester_gb = QtGui.QGroupBox('Семестр', self)
         # добавление рамки в сетку
         create_container.addWidget(create_semester_gb, 1, 0, 1, 1)
 
-        # создание сетки для рамки "группа"
+        # создание сетки для рамки "семестр"
         create_semester_container = QtGui.QGridLayout(create_semester_gb)
 
+        # --------------------------------------------------------------------------------
+
         # создание сообщения о выборе группы
-        choose_semester_l = QtGui.QLabel(u"""Введите номер группы:""", choose_gb)
-        create_semester_container.addWidget(choose_semester_l, 0, 0, 1, 1)
+        create_choose_semester_l = QtGui.QLabel(u"""Выберите номер группы:""", create_group_gb)
+        create_semester_container.addWidget(create_choose_semester_l, 0, 0, 1, 1)
 
         # создание выпадающего списка о выборе группы
-        choose_group_cb = QtGui.QComboBox(choose_gb)
-        choose_group_cb.clear()
+        create_choose_group_cb = QtGui.QComboBox(create_group_gb)
+        create_choose_group_cb.clear()
 
         # добавляет пустую строку, чтобы изначально группа не была выбрана
-        choose_group_cb.addItem(None)
+        create_choose_group_cb.addItem(None)
 
         # вызываю функцию для получения списка групп
         list_of_groups = logic.get_groups()
         # добавляет в выпадающий список группы
         for i in list_of_groups:
-            choose_group_cb.addItem(str(i))
-        choose_group_cb.setEditable(False)
+            create_choose_group_cb.addItem(str(i))
+
+        create_choose_group_cb.setEditable(False)
+
+        create_semester_container.addWidget(create_choose_group_cb, 1, 0, 1, 1)
+
+        # --------------------------------------------------------------------------------
+
+        # создание сообщения о вводе семестра
+        create_choose_semester_l = QtGui.QLabel(u"""Введите номер семестра:""", create_group_gb)
+        create_semester_container.addWidget(create_choose_semester_l, 2, 0, 1, 1)
 
         # создание строки для ввода номера семестра
-        choose_semester_le = QtGui.QLineEdit()
-        create_semester_container.addWidget(choose_semester_le, 1, 0, 1, 1)
+        create_choose_semester_le = QtGui.QLineEdit()
+        create_semester_container.addWidget(create_choose_semester_le, 3, 0, 1, 1)
 
         # создание кнопки добавления
         self.add_semester_button = QtGui.QPushButton(u"Добавить")
-        self.connect(self.add_semester_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
-        create_semester_container.addWidget(self.add_semester_button, 2, 0, 1, 1)
+        self.connect(self.add_semester_button, QtCore.SIGNAL('clicked()'), self.create_add_semester)
+        create_semester_container.addWidget(self.add_semester_button, 4, 0, 1, 1)
 
-        # ================================================================
+        # =================================================================================
+        # =================================================================================
 
         # создание рамки для ввода предмета
         create_subject_gb = QtGui.QGroupBox('Предмет', self)
         # добавление рамки в сетку
         create_container.addWidget(create_subject_gb, 2, 0, 1, 1)
 
+        # создание сетки для рамки "предмет"
+        create_subject_container = QtGui.QGridLayout(create_subject_gb)
+
+        # --------------------------------------------------------------------------------
+
+        # создание сообщения о выборе группы
+        create_choose_subject_l = QtGui.QLabel(u"""Выберите номер группы:""", create_group_gb)
+        create_subject_container.addWidget(create_choose_subject_l, 0, 0, 1, 1)
+
         # создание выпадающего списка о выборе группы
-        choose_group_cb = QtGui.QComboBox(choose_gb)
-        choose_group_cb.clear()
+        create_choose_group_sem_cb = QtGui.QComboBox(create_group_gb)
+        create_choose_group_sem_cb.clear()
+
+        # добавляет пустую строку, чтобы изначально группа не была выбрана
+        create_choose_group_sem_cb.addItem(None)
+
+        # добавление выпадающего списка о выборе группы в сетку
+        create_subject_container.addWidget(create_choose_group_sem_cb, 1, 0, 1, 1)
+
+        # при выборе значения из списка вызывает функцию по поиску семестров
+        create_choose_group_sem_cb.currentIndexChanged[str].connect(self.create_choose_semester)
+
+        # вызываю функцию для получения списка групп
+        list_of_groups = logic.get_groups()
+        # добавляет в выпадающий список группы
+        for i in list_of_groups:
+            create_choose_group_sem_cb.addItem(str(i))
+
+        create_choose_group_sem_cb.setEditable(False)
+
+        # --------------------------------------------------------------------------------
+
+        # создание сообщения о выборе семестра
+        create_choose_semester_l = QtGui.QLabel(u"""Выберите номер семестра:""", create_group_gb)
+        create_subject_container.addWidget(create_choose_semester_l, 2, 0, 1, 1)
+
+        # создание выпадающего списка о выборе семестра
+        create_choose_semester_cb = QtGui.QComboBox(create_group_gb)
+
+        create_choose_semester_cb.setEditable(False)
+        create_choose_semester_cb.setEnabled(False)
+
+        # добавление выпадающего списка о выборе семестра в сетку
+        create_subject_container.addWidget(create_choose_semester_cb, 3, 0, 1, 1)
+
+        # --------------------------------------------------------------------------------
+
+        # создание сообщения о вводе предмета
+        create_choose_subject_l = QtGui.QLabel(u"""Введите название предмета:""", create_group_gb)
+        create_subject_container.addWidget(create_choose_subject_l, 4, 0, 1, 1)
+
+        # создание строки для ввода предмета
+        create_choose_subject_le = QtGui.QLineEdit()
+        create_subject_container.addWidget(create_choose_subject_le, 5, 0, 1, 1)
+
+        # --------------------------------------------------------------------------------
+
+        # создание кнопки добавления
+        self.add_subject_button = QtGui.QPushButton(u"Добавить")
+        self.connect(self.add_subject_button, QtCore.SIGNAL('clicked()'), self.create_add_subject)
+        create_subject_container.addWidget(self.add_subject_button, 6, 0, 1, 1)
+
+    def create_choose_semester(self, create_group_index):
+        create_group_name = create_group_index
+
+        if bool(create_group_name) is True:
+            # делает активным
+            create_choose_semester_cb.setEnabled(True)
+            create_choose_semester_cb.clear()
+            # добавляет пустую строку, чтобы изначально группа не была выбрана
+            create_choose_semester_cb.addItem(None)
+            """
+            Вызываю функцию для получения списка семестров
+            Оправляю номер группы
+            Должен получить список с семестрами
+            """
+            list_of_semester = logic.get_semesters(create_group_name)
+            # добавляет в выпадающий список семестры
+            for i in list_of_semester:
+                create_choose_semester_cb.addItem(str(i))
+        else:
+            # делает неактивным
+            create_choose_semester_cb.setEnabled(False)
+            create_choose_semester_cb.setCurrentIndex(0)
+
+    def create_add_group(self):
+        create_choose_group_text = create_choose_group_le.text()
+        if bool(create_choose_group_text) is True:
+            logic.add(create_choose_group_text)
+
+        # обновление списков групп
+
+        # вызываю функцию для получения списка групп
+        list_of_groups = logic.get_groups()
+
+        create_choose_group_cb.clear()
+        # добавляет пустую строку, чтобы изначально группа не была выбрана
+        create_choose_group_cb.addItem(None)
+        # добавляет в выпадающий список группы
+        for i in list_of_groups:
+            create_choose_group_cb.addItem(str(i))
+
+        create_choose_group_sem_cb.clear()
+        # добавляет пустую строку, чтобы изначально группа не была выбрана
+        create_choose_group_sem_cb.addItem(None)
+        # добавляет в выпадающий список группы
+        for i in list_of_groups:
+            create_choose_group_sem_cb.addItem(str(i))
+
+    def create_add_semester(self):
+        create_choose_group_chosen = create_choose_group_cb.currentText()
+        create_choose_semester_text = create_choose_semester_le.text()
+        if bool(create_choose_group_chosen) is True:
+            if bool(create_choose_semester_text) is True:
+                logic.add(create_choose_group_chosen,
+                          semester=create_choose_semester_text)
+
+    def create_add_subject(self):
+        create_choose_group_chosen = create_choose_group_sem_cb.currentText()
+        create_choose_semester_chosen = create_choose_semester_cb.currentText()
+        create_choose_subject_text = create_choose_subject_le.text()
+        if bool(create_choose_group_chosen) is True:
+            if bool(create_choose_semester_chosen) is True:
+                if bool(create_choose_subject_text) is True:
+                    logic.add(create_choose_group_chosen,
+                              semester=create_choose_semester_chosen,
+                              subject=create_choose_subject_text)
+
+    def return_to_menu(self):
+        global repeat, group_name_re, semester_name_re, subject_name_re, repeater
+        repeat = True
+        repeater = 0
+        group_name_re = group_name
+        semester_name_re = semester_name
+        subject_name_re = subject_name
+        self.rtrn = MainDialog()
+        self.rtrn.show()
+        self.close()
 
 
 class TableWindow(QtGui.QMainWindow):
     def __init__(self):
-        global table_widget, attendance, dates_list
+        global table_widget
+        global attendance, dates_list
+        global check_self_button, check_button
+
         print(group_name, semester_name, subject_name)
         QtGui.QMainWindow.__init__(self)
 
@@ -471,9 +569,15 @@ class TableWindow(QtGui.QMainWindow):
         self.statusBar()
 
         # добавление кнопки отметки
-        check_button = QtGui.QAction(u"Отметить", self)
-        check_button.setShortcut('Ctrl+C')
-        check_button.setStatusTip('Зайти под своим табельным номером и отметить себя')
+        check_self_button = QtGui.QAction(u"Отметить себя", self)
+        check_self_button.setShortcut('Ctrl+C')
+        check_self_button.setStatusTip('Зайти под своим табельным номером и отметить себя')
+        self.connect(check_self_button, QtCore.SIGNAL('triggered()'), self.check_login)
+
+        # добавление кнопки отметки
+        check_button = QtGui.QAction(u"Отметить группу", self)
+        check_button.setShortcut('Ctrl+A')
+        check_button.setStatusTip('Зайти как староста или преподаватель и отметить группу')
         self.connect(check_button, QtCore.SIGNAL('triggered()'), self.check_login)
 
         # добавление кнопки преподавателя
@@ -501,14 +605,18 @@ class TableWindow(QtGui.QMainWindow):
         file = menu_bar.addMenu('&Меню')
 
         # добавление кнопки выхода в меню
+        file.addAction(check_self_button)
         file.addAction(check_button)
         file.addAction(super_button)
         file.addAction(change_group_button)
         file.addAction(exit_button)
 
     def check_login(self):
-        self.chlg = CheckLoginWindow()
-        self.chlg.show()
+        if self.sender() == check_self_button:
+            print('fdfdf')
+        elif self.sender() == check_button:
+            self.chlg = CheckLoginWindow()
+            self.chlg.show()
 
     def super(self):
         pass
@@ -520,8 +628,8 @@ class TableWindow(QtGui.QMainWindow):
         group_name_re = group_name
         semester_name_re = semester_name
         subject_name_re = subject_name
-        self.change = MainDialog()
-        self.change.show()
+        self.chng = MainDialog()
+        self.chng.show()
         self.close()
 
 
@@ -538,35 +646,32 @@ class CheckLoginWindow(QtGui.QWidget):
         # ================================================================
 
         # создание рамки для ввода группы
-        create_group_gb = QtGui.QGroupBox('Группа', self)
+        login_gb = QtGui.QGroupBox(u"""Введите свой табельный номер:""", self)
         # добавление рамки в сетку
-        login_container.addWidget(create_group_gb, 0, 0, 1, 1)
+        login_container.addWidget(login_gb, 0, 0, 1, 1)
 
         # создание сетки для рамки
-        login_pass_container = QtGui.QGridLayout(create_group_gb)
-
-        # создание сообщения о вводе логина
-        login_l = QtGui.QLabel(u"""Введите свой табельный номер:""", choose_gb)
-        login_pass_container.addWidget(login_l, 0, 0, 1, 1)
+        login_pass_container = QtGui.QGridLayout(login_gb)
 
         # создание строки для ввода номера группы
         login_le = QtGui.QLineEdit()
-        login_pass_container.addWidget(login_le, 1, 0, 1, 1)
+        login_pass_container.addWidget(login_le, 0, 0, 1, 1)
 
         # создание кнопки добавления
         self.add_group_button = QtGui.QPushButton(u"Принять")
         self.connect(self.add_group_button, QtCore.SIGNAL('clicked()'), self.check)
-        login_container.addWidget(self.add_group_button, 2, 0, 1, 1)
+        login_container.addWidget(self.add_group_button, 1, 0, 1, 1)
 
         # создание кнопки для выхода
         self.exit_button = QtGui.QPushButton(u"Выйти")
         self.connect(self.exit_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
-        login_container.addWidget(self.exit_button, 3, 0, 1, 1)
+        login_container.addWidget(self.exit_button, 2, 0, 1, 1)
 
     def check(self):
         self.ch = CheckWindow()
         self.ch.show()
         self.close()
+
 
 class CheckWindow(QtGui.QTableWidget):
     def __init__(self):
@@ -581,37 +686,41 @@ class CheckWindow(QtGui.QTableWidget):
             if dates_list[i] == date_now:
                 print(i)
 
-
         # заполнение шапок
-        print(date_now)
         self.setHorizontalHeaderLabels(date_now)
         self.setVerticalHeaderLabels(list(names))
 
-        # # заполнение ячеек
-        # for m, name in enumerate(names):
-        #     for n, item in enumerate(attendance[name]):
-        #         check_item = QtGui.QTableWidgetItem(item)
-        #         check_item.setTextAlignment(QtCore.Qt.AlignCenter)
-        #         self.setItem(m, n, check_item)
-        
+        list_of_cb =[]
+        print(self.rowCount())
         for i in range(self.rowCount()):
             item_cb = QtGui.QComboBox(self)
+            list_of_cb.append(item_cb)
             item_cb.addItem(None)
             for j in [0,1,2,3]:
                 item_cb.addItem(str(j))
             item_cb.setEditable(False)
             item_cb.currentIndexChanged[str].connect(self.check_in)
-            cb_list.setItemWidget(QtGui.QListWidgetItem, item_cb)
+
             # при выборе значения из списка вызывает функцию замены значения посещения
             self.setCellWidget(i, 0, item_cb)
+        print(list_of_cb)
+
+        # заполнение ячеек
+        print(attendance[date_today])
+        for m, cb in enumerate(list_of_cb):
+            for n, item in enumerate(names):
+                if n == m:
+                    check_now_item = attendance[date_today].get(item)
+                    cb.setCurrentIndex(cb.findText(check_now_item))
 
         self.resizeColumnsToContents()
 
     def check_in(self, code):
-        print(code)
-        #student_num = base.get_student_info(name=self.verticalHeaderItem(int(row)).text())
-        #print(student_num)
-        #base.check_in(date_today, student_num, code)
+        index = self.sender()
+        index = self.indexAt(index.pos())
+        row = index.row()
+        student_num = base.get_student_info(name=self.verticalHeaderItem(int(row)).text())
+        base.check_in(date_today, student_num, code)
 
 
 if __name__ == '__main__':
