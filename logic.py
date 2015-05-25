@@ -2,15 +2,13 @@
 import json
 from os.path import exists  # проверка существования файла
 from os import mkdir, listdir
+import logging
 from pprint import pprint  # TEMP
 
+logging.basicConfig(format = '%(levelname)-7s:(line %(lineno)d) %(message)s')
+
 DBS_PATH = 'groups'
-DB_STRUCTURE = \
-    {
-        'students': {},
-        'attendance': {}
-    }
-db_temp = ''
+db_temp = ''  # резервная копия базы
 
 
 class BaseNotFoundError(Exception):
@@ -35,26 +33,70 @@ def add(group, semester='', subject=''):
     subject = subject.upper()
     if not exists(DBS_PATH):  # если нет папки с группами, создать
         mkdir(DBS_PATH)
-    path = DBS_PATH + '/' + group
-    if not exists(path):
-        mkdir(path)
-    elif not semester:
-        return False
-    if semester:
-        path += '/' + semester
+    if semester and subject:
+        path = DBS_PATH + '/' + group + '/' + semester + '/' + subject
+        if not exists(path):
+            if not exists(DBS_PATH + '/' + group):  # е. нет папки группы
+                mkdir(DBS_PATH + '/' + group)
+            if not exists(DBS_PATH + '/' + group + '/' + semester):  # е. нет папки семестра
+                mkdir(DBS_PATH + '/' + group + '/' + semester)
+                # создать базу со студентами
+                with open(DBS_PATH + '/' + group + '/' + semester + '/' + 'students', 'w') as base:
+                        base.write(json.dumps({}))
+            # создать базу с посещаемостью
+            with open(path, 'w') as base:
+                base.write(json.dumps({}))
+        else:
+            logging.warning('Предмет "%s" уже существует'%subject)
+            return False
+    elif semester and not subject:
+        path = DBS_PATH + '/' + group + '/' + semester
         if not exists(path):
             mkdir(path)
-        elif not subject:
+            with open(path+'students', 'w') as base:
+                base.write(json.dumps({}))
+        else:
+            logging.warning('Семестр "%s" уже существует'%semester)
             return False
-    if subject:
-        path += '/' + subject
-        if exists(path):
+    elif not semester and subject:
+        logging.warning('Получен параметр subject, но отсутствует semester')
+        return False
+    else:
+        path = DBS_PATH + '/' + group
+        if not exists(path):
+            mkdir(path)
+        else:
+            logging.warning('Группа "%s" уже существует'%group)
             return False
-        with open(path, 'w') as file:
-            file.write(json.dumps(DB_STRUCTURE))
     return True
     # FIXME: оптимизировать код
 
+
+def get(data=''):
+    """
+    ПОЛУЧИТЬ СПИСОК ГРУПП/СЕМЕСТРОВ/ПРЕДМЕТОВ
+    Принимает:
+        data
+    Возвращает:
+        (list)
+
+    data = '' - список групп
+    data = 1 - список семестров
+    data = (1, 1) - список предметов
+    """
+    if not data:
+        # е. нет папки с группами, создать её и вернуть пустой список
+        if not exists(DBS_PATH):
+            mkdir(DBS_PATH)
+            return ()
+        return listdir(DBS_PATH)
+    if isinstance(data, (str, int)):
+        group = str(data)
+        return listdir(DBS_PATH + '/' + group)
+    if isinstance(data, (tuple, list)):
+        group = str(data[0])
+        semester = str(data[1])
+        return listdir(DBS_PATH + '/' + group + '/' + semester)
 
 def get_groups():
     """
@@ -108,10 +150,11 @@ class Subject:
         self.group = str(group)
         self.semester = str(semester)
         self.subject = subject.upper()
-        self.path = self._path()
+        self.path = DBS_PATH + '/' + self.group + '/' + self.semester + '/' + self.subject
         if not exists(self.path):
             raise BaseNotFoundError('База данных \"%s\" не найдена' % self.path)
         self.base = self._read_db()
+        # self.students = self._read_db('students')
 
     def add_students(self, students):
         """
@@ -183,13 +226,13 @@ class Subject:
         else:
             return False
 
-    def get_student_info(self, pers_number='', name=''):
+    def get_student_info(self, pers_number='', name='', right=False):
         """
         ПОЛУЧИТЬ ИНФОРМАЦИЮ О СТУДЕНТЕ
         """
         pers_number = str(pers_number)
         if pers_number:
-            return self.base['students'][pers_number][0]
+            return self.base['students'][pers_number][0] if right else self.base['students'][pers_number][0]
         if name:
             for student in self.base['students']:
                 if self.base['students'][student][0] == name:
@@ -237,21 +280,23 @@ class Subject:
         # TODO
 
     # ВНУТРЕННИЕ ФУНКЦИИ
-    def _path(self):
-        return DBS_PATH + '/' + self.group + '/' + self.semester + '/' + self.subject
-
-    def _read_db(self):
+    def _read_db(self, path=''):
         global db_temp
-        base = open(self.path, 'r').read()
+        if not path:
+            path = self.path
+        base = open(path, 'r').read()
+        # REVIEW сохранение базы
         db_temp = base  # создание резервной копии базы в памяти
         return json.loads(base)
 
-    def _save_db(self):
+    def _save_db(self, path):
         try:
             with open(self.path, 'w') as file:
                 file.write(json.dumps(self.base))
         except ValueError:  # в случае возникновения ошибки, записать в файл первоначальный вид базы
+            logging.critical('Ошибка с форматом базы')
             with open(self.path, 'w') as base:
                 base.write(db_temp)
-                return False
+            logging.warning('Была записана старая версия базы')
+            return False
         return True
