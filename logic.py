@@ -155,11 +155,12 @@ class Subject:
                 right = student[2]
             except IndexError:
                 right = 0
-            if student[0] not in self.students:  # е. студента нет ещё в базе (по таб. номеру)
+            if str(student[0]) not in self.students:  # е. студента нет ещё в базе (по таб. номеру)
                 self.students.update({str(student[0]): (student[1], right)})
                 for date in self.get_lessons():  # заполнение посещаемости нулями
                     self.check_in(date, student[0], 0)
             else:
+                # FIXME не работает логирование
                 logging.warning('Этот таб. номер уже есть в базе ({}, {})'.format(student[0], student[1]))
         return True if self._save_db(path=self.path_s, base=self.students) else False
 
@@ -250,11 +251,11 @@ class Subject:
         """
         ПОЛУЧИТЬ ИНФОРМАЦИЮ О СТУДЕНТЕ
         """
-        pers_number = str(pers_number)
         if pers_number:
+            pers_number = str(pers_number)
             try:
                 return self.students[pers_number][0] if right else self.students[pers_number][0]
-            except IndexError:
+            except KeyError:
                 logging.error('Студент не найден')
                 return False
         if name:
