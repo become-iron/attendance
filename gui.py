@@ -529,6 +529,9 @@ class CreateWindow(QtGui.QWidget):
         # добавляет в выпадающий список группы
         for i in list_of_groups:
             create_choose_group_sem_cb.addItem(str(i))
+        if error_id is not None:
+            # если ошибка возникла, окрывается окно с ошибкой
+            self.error_window()
 
     def create_add_semester(self):
         global error_id
@@ -543,6 +546,9 @@ class CreateWindow(QtGui.QWidget):
                 error_id = 9
         else:
             error_id = 10
+        if error_id is not None:
+            # если ошибка возникла, окрывается окно с ошибкой
+            self.error_window()
 
     def create_add_subject(self):
         global error_id
@@ -823,16 +829,16 @@ class CheckLoginAdminWindow(QtGui.QWidget):
         login_pass_container = QtGui.QGridLayout(login_gb)
 
         # создание сообщения о вводе логина
-        create_choose_group_l = QtGui.QLabel(u"""Введите табельный номер:""", login_gb)
-        login_pass_container.addWidget(create_choose_group_l, 0, 0, 1, 1)
+        login_l = QtGui.QLabel(u"""Введите табельный номер:""", login_gb)
+        login_pass_container.addWidget(login_l, 0, 0, 1, 1)
 
         # создание строки для ввода номера группы
         login_le = QtGui.QLineEdit()
         login_pass_container.addWidget(login_le, 1, 0, 1, 1)
 
         # создание сообщения о вводе пароля
-        create_choose_group_l = QtGui.QLabel(u"""Введите пароль:""", login_gb)
-        login_pass_container.addWidget(create_choose_group_l, 2, 0, 1, 1)
+        pass_l = QtGui.QLabel(u"""Введите пароль:""", login_gb)
+        login_pass_container.addWidget(pass_l, 2, 0, 1, 1)
 
         # создание строки для ввода номера группы
         pass_le = QtGui.QLineEdit()
@@ -932,6 +938,18 @@ class CheckWindow(QtGui.QWidget):
                     cb.setCurrentIndex(cb.findText(check_now_item))
 
         table_check_widget.resizeColumnsToContents()
+
+    def sizeHint(self):
+        width = 0
+        for i in range(self.columnCount()):
+            width += self.columnWidth(i)
+
+        width += self.verticalHeader().sizeHint().width()
+
+        width += self.verticalScrollBar().sizeHint().width()
+        width += self.frameWidth()*2
+
+        return QtCore.QSize(width,table_widget.height())
 
     def check_in(self, code):
         index = self.sender()
