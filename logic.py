@@ -5,7 +5,7 @@ from os import mkdir, listdir
 import logging
 from pprint import pprint  # TEMP
 
-logging.basicConfig(format='%(levelname)-7s:(line %(lineno)d) %(message)s')
+logging.basicConfig(format='%(levelname)-7s:[#%(lineno)d] %(message)s')
 
 DBS_PATH = 'groups'
 db_temp = ''  # резервная копия базы
@@ -33,6 +33,8 @@ def add(group, semester='', subject=''):
     subject = subject.upper()
     if not exists(DBS_PATH):  # е. нет папки с группами, создать
         mkdir(DBS_PATH)
+        with open(DBS_PATH + '/' + 'superusers', 'w') as base:
+            base.write(json.dumps({}))
     if semester and subject:
         path = DBS_PATH + '/' + group + '/' + semester + '/' + subject
         if not exists(path):
@@ -52,7 +54,9 @@ def add(group, semester='', subject=''):
     elif semester and not subject:
         path = DBS_PATH + '/' + group + '/' + semester
         if not exists(path):
+            mkdir(DBS_PATH + '/' + group)
             mkdir(path)
+            # создать базу со студентами
             with open(path+'/students', 'w') as base:
                 base.write(json.dumps({}))
         else:
@@ -113,12 +117,17 @@ class Subject:
         self.group = str(group)
         self.semester = str(semester)
         self.subject = subject.upper()
+
         self.path = DBS_PATH + '/' + self.group + '/' + self.semester + '/' + self.subject
         if not exists(self.path):
             raise BaseNotFoundError('База данных \"%s\" не найдена' % self.path)
         self.attendance = self._read_db()
+
         self.path_s = DBS_PATH + '/' + self.group + '/' + self.semester + '/' + 'students'
         self.students = self._read_db(self.path_s)
+
+        self.path_su = DBS_PATH + '/' + 'superusers'
+        self.superusers = self._read_db(self.path_su)
 
     def add_students(self, students):
         """
@@ -132,10 +141,9 @@ class Subject:
             (pers_num, name, right))
 
             Права необязательно указывать, по умолчанию присвоится код 0
-            Коды прав пользователей:
+            Коды прав студентов:
             0 - обычный пользователь
             1 - повышенные права
-            2 - суперпользователь
         Возвращает:
             (bool) - успешность операции
         """
@@ -151,6 +159,19 @@ class Subject:
             else:
                 logging.warning('Этот таб. номер уже есть в базе ({}, {})'.format(student[0], student[1]))
         return True if self._save_db(path=self.path_s, base=self.students) else False
+
+    def add_superuser(self, login, password):
+        """
+        ДОБАВИТЬ СУПЕРПОЛЬЗОВАТЕЛЯ
+        """
+        login = str(login)
+        password = str(password)
+        if login not in self.superusers:
+            self.superusers.update({login: password})
+            self._save_db(path=self.path_su, base=self.superusers)
+            return True
+        logging.warning('Пользователь "%s" уже есть' % login)
+        return False
 
     def add_lessons(self, lessons):
         """
@@ -195,7 +216,7 @@ class Subject:
             if not pers_number:
                 logging.error('Студент %s не найден' % name)
                 return False
-            self.students.update({pers_number:(data, right)})
+            self.students.update({pers_number: (data, right)})
         else:
             logging.warning('Не был передан ни один параметр')
             return False
@@ -267,6 +288,22 @@ class Subject:
         """
         students = {student: self.students[student][0] for student in self.students}
         return {date: {students[student]: self.attendance[date][student] for student in self.attendance[date]} for date in self.attendance}
+
+    def verify(self, login, password):
+        """
+        ВЕРИФИКАЦИЯ ДАННЫХ СУПЕРПОЛЬЗОВАТЕЛЯ
+        Принимает:
+            login - (str или int) - логин
+            password (str или int) - пароль
+        Возвращает:
+            (bool) - верность данных
+        """
+        login = str(login)
+        password = str(password)
+        if login in self.superusers:
+            return self.superusers[login] == password
+        logging.warning('Логин "%s" не найден' % login)
+        return False
 
     def del_semester(self):
         pass
