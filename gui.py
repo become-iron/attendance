@@ -75,7 +75,7 @@ class MainDialog(QtGui.QWidget):
         choose_group_cb.currentIndexChanged[str].connect(self.choose_semester)
 
         # вызываю функцию для получения списка групп
-        list_of_groups = logic.get_groups()
+        list_of_groups = logic.get()
         # добавляет в выпадающий список группы
         for i in list_of_groups:
             choose_group_cb.addItem(str(i))
@@ -152,7 +152,7 @@ class MainDialog(QtGui.QWidget):
             Оправляю номер группы
             Должен получить список с семестрами
             """
-            list_of_semester = logic.get_semesters(group_name)
+            list_of_semester = logic.get(group_name)
             # добавляет в выпадающий список семестры
             for i in list_of_semester:
                 choose_semester_cb.addItem(str(i))
@@ -194,9 +194,9 @@ class MainDialog(QtGui.QWidget):
             Должен получить список с семестрами
             """
             try:
-                list_of_subject = logic.get_subjects(group_name, semester_name)
+                list_of_subject = logic.get((group_name, semester_name))
                 # добавляет в выпадающий список семестры
-                print(logic.get_subjects(group_name, semester_name))
+                print(logic.get((group_name, semester_name)))
                 for i in list_of_subject:
                     choose_subject_cb.addItem(str(i))
             except logic.WrongDataError:
@@ -358,7 +358,7 @@ class CreateWindow(QtGui.QWidget):
         create_choose_group_cb.addItem(None)
 
         # вызываю функцию для получения списка групп
-        list_of_groups = logic.get_groups()
+        list_of_groups = logic.get()
         # добавляет в выпадающий список группы
         for i in list_of_groups:
             create_choose_group_cb.addItem(str(i))
@@ -413,7 +413,7 @@ class CreateWindow(QtGui.QWidget):
         create_choose_group_sem_cb.currentIndexChanged[str].connect(self.create_choose_semester)
 
         # вызываю функцию для получения списка групп
-        list_of_groups = logic.get_groups()
+        list_of_groups = logic.get()
         # добавляет в выпадающий список группы
         for i in list_of_groups:
             create_choose_group_sem_cb.addItem(str(i))
@@ -451,6 +451,7 @@ class CreateWindow(QtGui.QWidget):
         self.add_subject_button = QtGui.QPushButton(u"Добавить")
         self.connect(self.add_subject_button, QtCore.SIGNAL('clicked()'), self.create_add_subject)
         create_subject_container.addWidget(self.add_subject_button, 6, 0, 1, 1)
+    # TODO: Добавить окна с ошибками
 
     def create_choose_semester(self, create_group_index):
         create_group_name = create_group_index
@@ -466,7 +467,7 @@ class CreateWindow(QtGui.QWidget):
             Оправляю номер группы
             Должен получить список с семестрами
             """
-            list_of_semester = logic.get_semesters(create_group_name)
+            list_of_semester = logic.get(create_group_name)
             # добавляет в выпадающий список семестры
             for i in list_of_semester:
                 create_choose_semester_cb.addItem(str(i))
@@ -483,7 +484,7 @@ class CreateWindow(QtGui.QWidget):
         # обновление списков групп
 
         # вызываю функцию для получения списка групп
-        list_of_groups = logic.get_groups()
+        list_of_groups = logic.get()
 
         create_choose_group_cb.clear()
         # добавляет пустую строку, чтобы изначально группа не была выбрана
@@ -534,7 +535,7 @@ class TableWindow(QtGui.QMainWindow):
     def __init__(self):
         global table_widget
         global attendance, dates_list
-        global check_self_button, check_button
+        global check_self_button, check_button, admin_button
 
         print(group_name, semester_name, subject_name)
         QtGui.QMainWindow.__init__(self)
@@ -568,23 +569,23 @@ class TableWindow(QtGui.QMainWindow):
         # создается строка статуса
         self.statusBar()
 
-        # добавление кнопки отметки
+        # добавление кнопки отметки себя
         check_self_button = QtGui.QAction(u"Отметить себя", self)
         check_self_button.setShortcut('Ctrl+C')
         check_self_button.setStatusTip('Зайти под своим табельным номером и отметить себя')
         self.connect(check_self_button, QtCore.SIGNAL('triggered()'), self.check_login)
 
-        # добавление кнопки отметки
-        check_button = QtGui.QAction(u"Отметить группу", self)
-        check_button.setShortcut('Ctrl+A')
+        # добавление кнопки отметки всех
+        check_button = QtGui.QAction(u"Отметить всех", self)
+        check_button.setShortcut('Ctrl+D')
         check_button.setStatusTip('Зайти как староста или преподаватель и отметить группу')
         self.connect(check_button, QtCore.SIGNAL('triggered()'), self.check_login)
 
-        # добавление кнопки преподавателя
-        super_button = QtGui.QAction(u"Зайти как препод", self)
-        super_button.setShortcut('Ctrl+M')
-        super_button.setStatusTip('Зайти как староста или преподаватель')
-        self.connect(super_button, QtCore.SIGNAL('triggered()'), self.super)
+        # добавление кнопки админа
+        admin_button = QtGui.QAction(u"Зайти в режим редактирования", self)
+        admin_button.setShortcut('Ctrl+E')
+        admin_button.setStatusTip('Зайти с правами администратора и редактировать таблицу')
+        self.connect(admin_button, QtCore.SIGNAL('triggered()'), self.check_login)
 
         # добавление кнопки смены группы
         change_group_button = QtGui.QAction(u"Выбрать другую группу или семестр", self)
@@ -607,19 +608,15 @@ class TableWindow(QtGui.QMainWindow):
         # добавление кнопки выхода в меню
         file.addAction(check_self_button)
         file.addAction(check_button)
-        file.addAction(super_button)
+        file.addAction(admin_button)
         file.addAction(change_group_button)
         file.addAction(exit_button)
 
     def check_login(self):
-        if self.sender() == check_self_button:
-            print('fdfdf')
-        elif self.sender() == check_button:
-            self.chlg = CheckLoginWindow()
-            self.chlg.show()
-
-    def super(self):
-        pass
+        global master_index
+        master_index = self.sender()
+        self.chlg = CheckLoginWindow()
+        self.chlg.show()
 
     def change_group(self):
         global repeat, group_name_re, semester_name_re, subject_name_re, repeater
@@ -635,6 +632,7 @@ class TableWindow(QtGui.QMainWindow):
 
 class CheckLoginWindow(QtGui.QWidget):
     def __init__(self):
+        global login_le
         QtGui.QWidget.__init__(self)
 
         # название окна
@@ -668,9 +666,26 @@ class CheckLoginWindow(QtGui.QWidget):
         login_container.addWidget(self.exit_button, 2, 0, 1, 1)
 
     def check(self):
-        self.ch = CheckWindow()
-        self.ch.show()
-        self.close()
+        print(login_le.text())
+        student_num = int(login_le.text())
+        # TODO: Сделать автоматическое определение даты
+        date_today = '1.1'
+        # TODO: Сделать автоматическое определение кода по времени
+        code = 2
+        if bool(login_le) is True:
+            if master_index == check_self_button:
+                base.check_in(date_today, student_num, code=code)
+                # TODO: Сделать обновление данных в таблице
+                # TODO: Добавить окно с сообщением об успешном завершении операции
+            elif master_index == check_button:
+                # TODO: Сделать проверку прав
+                self.ch = CheckWindow()
+                self.ch.show()
+            elif master_index == admin_button:
+                # TODO: Сделать проверку прав
+                self.ch = AdminWindow()
+                self.ch.show()
+            self.close()
 
 
 class CheckWindow(QtGui.QTableWidget):
@@ -678,6 +693,7 @@ class CheckWindow(QtGui.QTableWidget):
         global attendance, dates_list, date_today, item_cb
         print(group_name, semester_name, subject_name)
         QtGui.QTableWidget.__init__(self, len(names), 1)
+        # TODO: Сделать автоматическое определение даты
         date_today = '1.1'
         date_now = []
         date_now.append(date_today)
@@ -721,6 +737,140 @@ class CheckWindow(QtGui.QTableWidget):
         row = index.row()
         student_num = base.get_student_info(name=self.verticalHeaderItem(int(row)).text())
         base.check_in(date_today, student_num, code)
+        # TODO: Сделать обновление данных в таблице
+        # TODO: Добавить кнопку для завершения операции
+
+
+class AdminWindow(QtGui.QWidget):
+    def __init__(self):
+        global calendar  # добавление даты
+        global student_name_le, student_id_le, student_right_cb  # добавление студента
+        QtGui.QWidget.__init__(self)
+
+        # название окна
+        self.setWindowTitle('Добавить студента или дату')
+
+        # создание сетки, в которую помещаются остальные виджеты
+        admin_container = QtGui.QGridLayout(self)
+
+        # создание кнопки для выхода в стартовое окно
+        self.quit_button = QtGui.QPushButton(u"Вернуться")
+        self.connect(self.quit_button, QtCore.SIGNAL('clicked()'), self.return_to_menu)
+        admin_container.addWidget(self.quit_button, 2, 0, 1, 1)
+
+        # создание кнопки для выхода
+        self.exit_button = QtGui.QPushButton(u"Выйти")
+        self.connect(self.exit_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
+        admin_container.addWidget(self.exit_button, 3, 0, 1, 1)
+
+        # ================================================================
+
+        # создание рамки для ввода группы
+        add_student_gb = QtGui.QGroupBox('Студент', self)
+        # добавление рамки в сетку
+        admin_container.addWidget(add_student_gb, 0, 0, 1, 1)
+
+        # создание сетки для рамки "группа"
+        add_student_container = QtGui.QGridLayout(add_student_gb)
+
+        # --------------------------------------------------------------------------------
+
+        # создание сообщения о вводе имени студента
+        student_name_l = QtGui.QLabel(u"""Введите имя студента:""", add_student_gb)
+        add_student_container.addWidget(student_name_l, 0, 0, 1, 1)
+
+        # создание строки для ввода имени студента
+        student_name_le = QtGui.QLineEdit()
+        add_student_container.addWidget(student_name_le, 1, 0, 1, 1)
+
+        # создание сообщения о вводе табельного номера
+        student_id_l = QtGui.QLabel(u"""Введите табельный номер студента:""", add_student_gb)
+        add_student_container.addWidget(student_id_l, 2, 0, 1, 1)
+
+        # создание строки для ввода табельного номера
+        student_id_le = QtGui.QLineEdit()
+        add_student_container.addWidget(student_id_le, 3, 0, 1, 1)
+
+        # создание сообщения о вводе прав студента
+        student_right_l = QtGui.QLabel(u"""Выберите права студента:""", add_student_gb)
+        add_student_container.addWidget(student_right_l, 4, 0, 1, 1)
+
+        # создание выпадающего списка для ввода прав студента
+        student_right_cb = QtGui.QComboBox(add_student_gb)
+        student_right_cb.clear()
+
+        # добавляет пустую строку, чтобы изначально группа не была выбрана
+        student_right_cb.addItem(None)
+
+        # добавляет в выпадающий права
+        for i in ['Студент', 'Староста', 'Администратор']:
+            student_right_cb.addItem(str(i))
+
+        student_right_cb.setEditable(False)
+
+        add_student_container.addWidget(student_right_cb, 5, 0, 1, 1)
+
+        # создание кнопки добавления
+        self.add_student_button = QtGui.QPushButton(u"Добавить")
+        self.connect(self.add_student_button, QtCore.SIGNAL('clicked()'), self.add_student)
+        add_student_container.addWidget(self.add_student_button, 6, 0, 1, 1)
+
+        # =================================================================================
+        # =================================================================================
+
+        # создание рамки для добавления даты
+        add_date_gb = QtGui.QGroupBox('Занятие', self)
+        # добавление рамки в сетку
+        admin_container.addWidget(add_date_gb, 1, 0, 1, 1)
+
+        # создание сетки для рамки "занятие"
+        add_date_container = QtGui.QGridLayout(add_date_gb)
+
+        # --------------------------------------------------------------------------------
+
+        # создание сообщения о выборе даты
+        student_name_l = QtGui.QLabel(u"""Выберите дату:""", add_date_gb)
+        add_date_container.addWidget(student_name_l, 0, 0, 1, 1)
+
+        # создание календаря
+        calendar = QtGui.QCalendarWidget(add_date_gb)
+
+        add_date_container.addWidget(calendar, 1, 0, 1, 1)
+
+        # создание кнопки добавления
+        self.add_date_button = QtGui.QPushButton(u"Добавить")
+        self.connect(self.add_date_button, QtCore.SIGNAL('clicked()'), self.add_date)
+        add_date_container.addWidget(self.add_date_button, 2, 0, 1, 1)
+
+    # TODO: Добавить окна с ошибками
+
+    def add_date(self):
+        if bool(calendar.selectedDate()) is True:
+            date_chosen = calendar.selectedDate()
+            day_chosen = str(date_chosen.day())
+            month_chosen = str(date_chosen.month())
+            year_chosen = str(date_chosen.year())
+            print(day_chosen + '.' + month_chosen + '.' + year_chosen)
+
+    def add_student(self):
+        if bool(student_name_le.text()) is True:
+            student_name_chosen = student_name_le.text()
+            if bool(student_id_le.text()) is True:
+                student_id_chosen = student_id_le.text()
+                if bool(student_right_cb.currentIndex()) is True:
+                    student_right_chosen = int(student_right_cb.currentIndex())-1
+                    base.add_students(((student_id_chosen, student_name_chosen, student_right_chosen),))
+
+    def return_to_menu(self):
+        global repeat, group_name_re, semester_name_re, subject_name_re, repeater
+        repeat = True
+        repeater = 0
+        group_name_re = group_name
+        semester_name_re = semester_name
+        subject_name_re = subject_name
+        self.rtrn = MainDialog()
+        self.rtrn.show()
+        self.close()
 
 
 if __name__ == '__main__':
