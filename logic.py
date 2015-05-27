@@ -53,7 +53,7 @@ def add(group, semester='', subject=''):
         path = DBS_PATH + '/' + group + '/' + semester
         if not exists(path):
             mkdir(path)
-            with open(path+'students', 'w') as base:
+            with open(path+'/students', 'w') as base:
                 base.write(json.dumps({}))
         else:
             logging.warning('Семестр "%s" уже существует' % semester)
