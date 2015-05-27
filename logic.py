@@ -254,7 +254,7 @@ class Subject:
         if pers_number:
             pers_number = str(pers_number)
             try:
-                return self.students[pers_number][0] if right else self.students[pers_number][0]
+                return self.students[pers_number][1] if right else self.students[pers_number][0]
             except KeyError:
                 logging.error('Студент не найден')
                 return False
