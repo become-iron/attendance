@@ -94,7 +94,7 @@ def get(data=''):
         if not exists(DBS_PATH):
             return ()
         groups = listdir(DBS_PATH)
-        groups.remove('students')
+        groups.remove('superusers')
         return groups
     if isinstance(data, (str, int)):  # список семестров
         group = str(data)
