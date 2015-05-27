@@ -119,7 +119,8 @@ class MainDialog(QtGui.QWidget):
         # при выборе значения из списка вызывает функцию по поиску семестров
         choose_group_cb.currentIndexChanged[str].connect(self.choose_semester)
 
-        # self.setFixedSize(self.sizeHint())
+        self.setFixedSize(self.sizeHint())
+        self.move(500, 300)
 
     def choose_semester(self, group_index):
         global choose_container     # главная сетка
@@ -306,6 +307,14 @@ class ErrorMessage(QtGui.QMessageBox):
             self.setText(u"Неверный пароль")
         elif error_id == 17:
             self.setText(u"Введите табельный номер")
+        elif error_id == 18:
+            self.setText(u"Группа уже существует")
+        elif error_id == 19:
+            self.setText(u"Семестр уже существует")
+        elif error_id == 20:
+            self.setText(u"Предмет уже существует")
+        elif error_id == 21:
+            self.setText(u"Этот табельный номер уже есть в базе")
 
         # настройки окна
         self.setWindowTitle('Ошибка')
@@ -329,11 +338,6 @@ class CreateWindow(QtGui.QWidget):
         self.quit_button = QtGui.QPushButton(u"Вернуться")
         self.connect(self.quit_button, QtCore.SIGNAL('clicked()'), self.return_to_menu)
         create_container.addWidget(self.quit_button, 3, 0, 1, 1)
-
-        # создание кнопки для выхода
-        self.exit_button = QtGui.QPushButton(u"Выйти")
-        self.connect(self.exit_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
-        create_container.addWidget(self.exit_button, 4, 0, 1, 1)
 
         # ================================================================
 
@@ -507,7 +511,8 @@ class CreateWindow(QtGui.QWidget):
         error_id = None
         create_choose_group_text = create_choose_group_le.text()
         if bool(create_choose_group_text) is True:
-            logic.add(create_choose_group_text)
+            if logic.add(create_choose_group_text) is False:
+                error_id = 18
         else:
             error_id = 11
 
@@ -540,8 +545,9 @@ class CreateWindow(QtGui.QWidget):
         create_choose_semester_text = create_choose_semester_le.text()
         if bool(create_choose_group_chosen) is True:
             if bool(create_choose_semester_text) is True:
-                logic.add(create_choose_group_chosen,
-                          semester=create_choose_semester_text)
+                if logic.add(create_choose_group_chosen,
+                             semester=create_choose_semester_text) is False:
+                    error_id = 19
             else:
                 error_id = 9
         else:
@@ -559,9 +565,10 @@ class CreateWindow(QtGui.QWidget):
         if bool(create_choose_group_chosen) is True:
             if bool(create_choose_semester_chosen) is True:
                 if bool(create_choose_subject_text) is True:
-                    logic.add(create_choose_group_chosen,
-                              semester=create_choose_semester_chosen,
-                              subject=create_choose_subject_text)
+                    if logic.add(create_choose_group_chosen,
+                                 semester=create_choose_semester_chosen,
+                                 subject=create_choose_subject_text) is False:
+                        error_id = 20
                 else:
                     error_id = 6
             else:
@@ -593,7 +600,7 @@ class TableWindow(QtGui.QMainWindow):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
 
-        global table_widget, error_id
+        global table_widget, error_id, date_today
         global base, attendance, dates_list, names
         global check_self_button, check_button, admin_button
         error_id = None
@@ -766,7 +773,7 @@ class CheckLoginWindow(QtGui.QWidget):
 
         # создание кнопки для выхода
         self.exit_button = QtGui.QPushButton(u"Выйти")
-        self.connect(self.exit_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
+        self.connect(self.exit_button, QtCore.SIGNAL('clicked()'), self.close_win)
         login_container.addWidget(self.exit_button, 2, 0, 1, 1)
 
     def check(self):
@@ -805,6 +812,11 @@ class CheckLoginWindow(QtGui.QWidget):
         em = ErrorMessage(error_id)
         em.show()
         em.exec_()
+
+    def close_win(self):
+        self.tb = TableWindow()
+        self.tb.show()
+        self.close()
 
 
 class CheckLoginAdminWindow(QtGui.QWidget):
@@ -851,7 +863,7 @@ class CheckLoginAdminWindow(QtGui.QWidget):
 
         # создание кнопки для выхода
         self.exit_button = QtGui.QPushButton(u"Выйти")
-        self.connect(self.exit_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
+        self.connect(self.exit_button, QtCore.SIGNAL('clicked()'), self.close_win)
         login_container.addWidget(self.exit_button, 5, 0, 1, 1)
 
 
@@ -884,6 +896,11 @@ class CheckLoginAdminWindow(QtGui.QWidget):
         em.show()
         em.exec_()
 
+    def close_win(self):
+        self.tb = TableWindow()
+        self.tb.show()
+        self.close()
+
 
 class CheckWindow(QtGui.QWidget):
     def __init__(self):
@@ -902,8 +919,6 @@ class CheckWindow(QtGui.QWidget):
         table_check_container.addWidget(ok_exit_button, 1, 0, 1, 1)
 
         # self.setCentralWidget(table_check_widget)
-
-        date_today = time.strftime("%d") + '.' + time.strftime("%m") + '.' + time.strftime("%Y")
         date_now = []
         date_now.append(date_today)
 
@@ -941,15 +956,15 @@ class CheckWindow(QtGui.QWidget):
 
     def sizeHint(self):
         width = 0
-        for i in range(self.columnCount()):
-            width += self.columnWidth(i)
+        for i in range(table_check_widget.columnCount()):
+            width += table_check_widget.columnWidth(i)
 
-        width += self.verticalHeader().sizeHint().width()
+        width += table_check_widget.verticalHeader().sizeHint().width()
 
-        width += self.verticalScrollBar().sizeHint().width()
-        width += self.frameWidth()*2
+        width += table_check_widget.verticalScrollBar().sizeHint().width()
+        width += table_check_widget.frameWidth()*2
 
-        return QtCore.QSize(width,table_widget.height())
+        return QtCore.QSize(width, table_check_widget.height())
 
     def check_in(self, code):
         index = self.sender()
@@ -1084,13 +1099,16 @@ class AdminWindow(QtGui.QWidget):
 
     def add_student(self):
         global error_id
+        error_id = None
         if bool(student_name_le.text()) is True:
             student_name_chosen = student_name_le.text()
             if bool(student_id_le.text()) is True:
                 student_id_chosen = student_id_le.text()
                 if bool(student_right_cb.currentIndex()) is True:
                     student_right_chosen = int(student_right_cb.currentIndex())-1
-                    base.add_students(((student_id_chosen, student_name_chosen, student_right_chosen),))
+                    print('yerf', base.add_students(((student_id_chosen, student_name_chosen, student_right_chosen),)))
+                    if base.add_students(((student_id_chosen, student_name_chosen, student_right_chosen),)) is False:
+                        error_id = 21
                 else:
                     error_id = 3
             else:
