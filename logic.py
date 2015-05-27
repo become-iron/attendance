@@ -94,7 +94,10 @@ def get(data=''):
         if not exists(DBS_PATH):
             return ()
         groups = listdir(DBS_PATH)
-        groups.remove('superusers')
+        try:
+            groups.remove('superusers')
+        except ValueError:
+            logging.critical('В корневой папке нет файла "superusers"')
         return groups
     if isinstance(data, (str, int)):  # список семестров
         group = str(data)
@@ -103,7 +106,10 @@ def get(data=''):
         group = str(data[0])
         semester = str(data[1])
         semesters_list = listdir(DBS_PATH + '/' + group + '/' + semester)
-        semesters_list.remove('students')
+        try:
+            semesters_list.remove('students')
+        except ValueError:
+            logging.critical('В папке семестра нет файла "students"')
         return semesters_list
     logging.error('Переданы некорректные данные')
     return False
@@ -132,16 +138,13 @@ class Subject:
         self.path_su = DBS_PATH + '/' + 'superusers'
         self.superusers = self._read_db(self.path_su)
 
-    def add_students(self, students):
+    def add_student(self, pers_number, name, right=0):
         """
         ДОБАВИТЬ СТУДЕНТОВ
         Принимает:
-            students (tuple) - студенты (таб. номера, имена, права)
-
-            Пример параметра students:
-            ((pers_num, name, right),
-            ...
-            (pers_num, name, right))
+            pers_number
+            name
+            right
 
             Права необязательно указывать, по умолчанию присвоится код 0
             Коды прав студентов:
@@ -150,18 +153,15 @@ class Subject:
         Возвращает:
             (bool) - успешность операции
         """
-        for student in students:
-            try:
-                right = student[2]
-            except IndexError:
-                right = 0
-            if str(student[0]) not in self.students:  # е. студента нет ещё в базе (по таб. номеру)
-                self.students.update({str(student[0]): (student[1], right)})
-                for date in self.get_lessons():  # заполнение посещаемости нулями
-                    self.check_in(date, student[0], 0)
-            else:
-                # FIXME не работает логирование
-                logging.warning('Этот таб. номер уже есть в базе ({}, {})'.format(student[0], student[1]))
+        pers_number = str(pers_number)
+        right = str(right)
+        if pers_number not in self.students:
+            self.students.update({pers_number: (name, right)})
+            for date in self.get_lessons():  # заполнение посещаемости нулями
+                self.check_in(date, pers_number, 0)
+        else:
+            logging.warning('({}, {}) — этот таб. номер уже есть в базе '.format(pers_number, name))
+            return False
         return True if self._save_db(path=self.path_s, base=self.students) else False
 
     def add_superuser(self, login, password):
