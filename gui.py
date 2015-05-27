@@ -667,25 +667,30 @@ class CheckLoginWindow(QtGui.QWidget):
 
     def check(self):
         print(login_le.text())
-        student_num = int(login_le.text())
         # TODO: Сделать автоматическое определение даты
         date_today = '1.1'
         # TODO: Сделать автоматическое определение кода по времени
         code = 2
-        if bool(login_le) is True:
-            if master_index == check_self_button:
-                base.check_in(date_today, student_num, code=code)
-                # TODO: Сделать обновление данных в таблице
-                # TODO: Добавить окно с сообщением об успешном завершении операции
-            elif master_index == check_button:
-                # TODO: Сделать проверку прав
-                self.ch = CheckWindow()
-                self.ch.show()
-            elif master_index == admin_button:
-                # TODO: Сделать проверку прав
-                self.ch = AdminWindow()
-                self.ch.show()
-            self.close()
+        if bool(login_le.text()) is True:
+            try:
+                student_num = int(login_le.text())
+                if master_index == check_self_button:
+                    base.check_in(date_today, student_num, code=code)
+                    TableWindow()
+                    # TODO: Сделать обновление данных в таблице
+                    # TODO: Добавить окно с сообщением об успешном завершении операции
+                elif master_index == check_button:
+                    # TODO: Сделать проверку прав
+                    self.ch = CheckWindow()
+                    self.ch.show()
+                elif master_index == admin_button:
+                    if bool(base.get_student_info(pers_number=student_num)) is True:
+                        self.ch = AdminWindow()
+                        self.ch.show()
+                self.close()
+            except ValueError:
+                print('dfdf')
+
 
 
 class CheckWindow(QtGui.QTableWidget):
@@ -753,15 +758,10 @@ class AdminWindow(QtGui.QWidget):
         # создание сетки, в которую помещаются остальные виджеты
         admin_container = QtGui.QGridLayout(self)
 
-        # создание кнопки для выхода в стартовое окно
-        self.quit_button = QtGui.QPushButton(u"Вернуться")
-        self.connect(self.quit_button, QtCore.SIGNAL('clicked()'), self.return_to_menu)
-        admin_container.addWidget(self.quit_button, 2, 0, 1, 1)
-
         # создание кнопки для выхода
         self.exit_button = QtGui.QPushButton(u"Выйти")
         self.connect(self.exit_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
-        admin_container.addWidget(self.exit_button, 3, 0, 1, 1)
+        admin_container.addWidget(self.exit_button, 2, 0, 1, 1)
 
         # ================================================================
 
@@ -850,7 +850,12 @@ class AdminWindow(QtGui.QWidget):
             day_chosen = str(date_chosen.day())
             month_chosen = str(date_chosen.month())
             year_chosen = str(date_chosen.year())
-            print(day_chosen + '.' + month_chosen + '.' + year_chosen)
+            date = day_chosen + '.' + month_chosen + '.' + year_chosen
+            dates = []
+            dates.append(date)
+            print(date, type(date))
+            print(dates)
+            base.add_lessons(dates)
 
     def add_student(self):
         if bool(student_name_le.text()) is True:
