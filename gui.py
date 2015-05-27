@@ -302,6 +302,10 @@ class ErrorMessage(QtGui.QMessageBox):
             self.setText(u"Студент с таким табельным номером не найден")
         elif error_id == 15:
             self.setText(u"У вас не хватает прав")
+        elif error_id == 16:
+            self.setText(u"Неверный пароль")
+        elif error_id == 17:
+            self.setText(u"Введите табельный номер")
 
         # настройки окна
         self.setWindowTitle('Ошибка')
@@ -474,7 +478,6 @@ class CreateWindow(QtGui.QWidget):
         self.add_subject_button = QtGui.QPushButton(u"Добавить")
         self.connect(self.add_subject_button, QtCore.SIGNAL('clicked()'), self.create_add_subject)
         create_subject_container.addWidget(self.add_subject_button, 6, 0, 1, 1)
-    # TODO: Добавить окна с ошибками
 
     def create_choose_semester(self, create_group_index):
         create_group_name = create_group_index
@@ -584,10 +587,10 @@ class TableWindow(QtGui.QMainWindow):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
 
-        global table_widget
+        global table_widget, error_id
         global base, attendance, dates_list, names
         global check_self_button, check_button, admin_button
-
+        error_id = None
         print(group_name, semester_name, subject_name)
 
         base = logic.Subject(group_name, semester_name, subject_name)
@@ -598,6 +601,11 @@ class TableWindow(QtGui.QMainWindow):
 
         dates_list = sorted(list(attendance.keys()))
         print(dates_list)
+
+        date_today = time.strftime("%d") + '.' + time.strftime("%m") + '.' + time.strftime("%Y")
+        print(date_today)
+        if date_today not in dates_list:
+            error_id = 12
 
         # настройки окна
         self.setWindowTitle('Контроль посещаемости')
@@ -644,7 +652,7 @@ class TableWindow(QtGui.QMainWindow):
         admin_button = QtGui.QAction(u"Зайти в режим редактирования", self)
         admin_button.setShortcut('Ctrl+E')
         admin_button.setStatusTip('Зайти с правами администратора и редактировать таблицу')
-        self.connect(admin_button, QtCore.SIGNAL('triggered()'), self.check_login)
+        self.connect(admin_button, QtCore.SIGNAL('triggered()'), self.check_super_login)
 
         # добавление кнопки смены группы
         change_group_button = QtGui.QAction(u"Выбрать другую группу или семестр", self)
@@ -672,7 +680,7 @@ class TableWindow(QtGui.QMainWindow):
         file.addAction(exit_button)
 
         table_widget.resize(table_widget.sizeHint())
-        
+
     def sizeHint(self):
         width = 0
         for i in range(table_widget.columnCount()):
@@ -688,7 +696,17 @@ class TableWindow(QtGui.QMainWindow):
     def check_login(self):
         global master_index
         master_index = self.sender()
-        self.chlg = CheckLoginWindow()
+        if error_id == 12:
+            self.error_window()
+        else:
+            self.chlg = CheckLoginWindow()
+            self.chlg.show()
+            self.close()
+
+    def check_super_login(self):
+        global master_index
+        master_index = self.sender()
+        self.chlg = CheckLoginAdminWindow()
         self.chlg.show()
         self.close()
 
@@ -703,6 +721,11 @@ class TableWindow(QtGui.QMainWindow):
         self.chng = MainDialog()
         self.chng.show()
         self.close()
+
+    def error_window(self):
+        em = ErrorMessage(error_id)
+        em.show()
+        em.exec_()
 
 
 class CheckLoginWindow(QtGui.QWidget):
@@ -744,40 +767,107 @@ class CheckLoginWindow(QtGui.QWidget):
         global error_id
         error_id = None
         print(login_le.text())
-        date_today = time.strftime("%d") + '.' + time.strftime("%m") + '.' + time.strftime("%Y")
-        print(date_today)
-        if date_today not in dates_list:
-            error_id = 12
-        else:
-            if bool(login_le.text()) is True:
-                try:
-                    student_num = int(login_le.text())
-                    if bool(base.get_student_info(pers_number=student_num)) is True:
-                        if master_index == check_self_button:
-                            base.check_in(date_today, student_num, code=1)
-                            self.tb = TableWindow()
-                            self.tb.show()
+        if bool(login_le.text()) is True:
+            try:
+                student_num = int(login_le.text())
+                if bool(base.get_student_info(pers_number=student_num)) is True:
+                    if master_index == check_self_button:
+                        base.check_in(date_today, student_num, code=1)
+                        self.tb = TableWindow()
+                        self.tb.show()
+                        self.close()
+                        # TODO: Добавить окно с сообщением об успешном завершении операции
+                    elif master_index == check_button:
+                        if base.get_student_info(pers_number=student_num, right=True) in (1, 2):
+                            self.ch = CheckWindow()
+                            self.ch.show()
                             self.close()
-                            # TODO: Добавить окно с сообщением об успешном завершении операции
-                        elif master_index == check_button:
-                            if base.get_student_info(pers_number=student_num, right=True) in (1, 2):
-                                self.ch = CheckWindow()
-                                self.ch.show()
-                                self.close()
-                            else:
-                                error_id = 15
-                        elif master_index == admin_button:
-                            print(base.get_student_info(pers_number=student_num, right=True))
-                            if base.get_student_info(pers_number=student_num, right=True) == 2:
-                                self.ch = AdminWindow()
-                                self.ch.show()
-                                self.close()
-                            else:
-                                error_id = 15
-                    else:
-                        error_id = 14
-                except ValueError:
-                    error_id = 13
+                        else:
+                            error_id = 15
+                else:
+                    error_id = 14
+            except ValueError:
+                error_id = 13
+        else:
+            error_id = 17
+
+        if error_id is not None:
+            # если ошибка возникла, окрывается окно с ошибкой
+            self.error_window()
+
+    def error_window(self):
+        em = ErrorMessage(error_id)
+        em.show()
+        em.exec_()
+
+
+class CheckLoginAdminWindow(QtGui.QWidget):
+    def __init__(self):
+        global login_le, pass_le
+        QtGui.QWidget.__init__(self)
+
+        # название окна
+        self.setWindowTitle('Введите свой табельный номер')
+
+        # создание сетки, в которую помещаются остальные виджеты
+        login_container = QtGui.QGridLayout(self)
+
+        # ================================================================
+
+        # создание рамки для ввода группы
+        login_gb = QtGui.QGroupBox(u"""Вход:""", self)
+        # добавление рамки в сетку
+        login_container.addWidget(login_gb, 0, 0, 1, 1)
+
+        # создание сетки для рамки
+        login_pass_container = QtGui.QGridLayout(login_gb)
+
+        # создание сообщения о вводе логина
+        create_choose_group_l = QtGui.QLabel(u"""Введите табельный номер:""", login_gb)
+        login_pass_container.addWidget(create_choose_group_l, 0, 0, 1, 1)
+
+        # создание строки для ввода номера группы
+        login_le = QtGui.QLineEdit()
+        login_pass_container.addWidget(login_le, 1, 0, 1, 1)
+
+        # создание сообщения о вводе пароля
+        create_choose_group_l = QtGui.QLabel(u"""Введите пароль:""", login_gb)
+        login_pass_container.addWidget(create_choose_group_l, 2, 0, 1, 1)
+
+        # создание строки для ввода номера группы
+        pass_le = QtGui.QLineEdit()
+        login_pass_container.addWidget(pass_le, 3, 0, 1, 1)
+
+        # создание кнопки добавления
+        self.add_group_button = QtGui.QPushButton(u"Принять")
+        self.connect(self.add_group_button, QtCore.SIGNAL('clicked()'), self.admin_check)
+        login_container.addWidget(self.add_group_button, 4, 0, 1, 1)
+
+        # создание кнопки для выхода
+        self.exit_button = QtGui.QPushButton(u"Выйти")
+        self.connect(self.exit_button, QtCore.SIGNAL('clicked()'), QtCore.SLOT('close()'))
+        login_container.addWidget(self.exit_button, 5, 0, 1, 1)
+
+
+    def admin_check(self):
+        global error_id
+        error_id = None
+        print(login_le.text())
+        if bool(login_le.text()) is True:
+            try:
+                login = int(login_le.text())
+                password = str(pass_le.text())
+                print(base.verify(login, password))
+                if base.verify(login, password) is True:
+                    self.ch = AdminWindow()
+                    self.ch.show()
+                    self.close()
+                else:
+                    error_id = 16
+            except ValueError:
+                error_id = 13
+        else:
+            error_id = 17
 
         if error_id is not None:
             # если ошибка возникла, окрывается окно с ошибкой
@@ -956,8 +1046,6 @@ class AdminWindow(QtGui.QWidget):
         self.add_date_button = QtGui.QPushButton(u"Добавить")
         self.connect(self.add_date_button, QtCore.SIGNAL('clicked()'), self.add_date)
         add_date_container.addWidget(self.add_date_button, 2, 0, 1, 1)
-
-    # TODO: Добавить окна с ошибками
 
     def add_date(self):
         if bool(calendar.selectedDate()) is True:
