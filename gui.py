@@ -20,11 +20,11 @@ repeater = 0  # счетчик количества использований
 
 class MainDialog(QtGui.QWidget):
     def __init__(self):
-        global choose_container
-        global choose_semester_cb, choose_subject_cb    # выпадающие списки
-        global repeater
-
         QtGui.QWidget.__init__(self)
+
+        global choose_container
+        global choose_group_cb, choose_semester_cb, choose_subject_cb    # выпадающие списки
+        global repeater
 
         # название окна
         self.setWindowTitle('Контроль посещаемости')
@@ -71,9 +71,6 @@ class MainDialog(QtGui.QWidget):
         # добавление выпадающего списка о выборе группы в сетку
         choose_container.addWidget(choose_group_cb, 1, 0, 1, 1)
 
-        # при выборе значения из списка вызывает функцию по поиску семестров
-        choose_group_cb.currentIndexChanged[str].connect(self.choose_semester)
-
         # вызываю функцию для получения списка групп
         list_of_groups = logic.get()
         # добавляет в выпадающий список группы
@@ -81,11 +78,6 @@ class MainDialog(QtGui.QWidget):
             choose_group_cb.addItem(str(i))
 
         choose_group_cb.setEditable(False)
-
-        if repeat is True:
-            repeater += 1
-            choose_group_cb.setCurrentIndex(choose_group_cb.findText(group_name_re))
-            self.choose_semester(group_name_re)
 
         # ============================================================================
 
@@ -101,9 +93,6 @@ class MainDialog(QtGui.QWidget):
 
         # добавление выпадающего списка о выборе семестра в сетку
         choose_container.addWidget(choose_semester_cb, 3, 0, 1, 1)
-
-        # при выборе значения из списка вызывает функцию по поиску семестров
-        choose_semester_cb.currentIndexChanged[str].connect(self.choose_subject)
 
         # ============================================================================
 
@@ -121,15 +110,21 @@ class MainDialog(QtGui.QWidget):
         # добавление списка в сетку
         choose_container.addWidget(choose_subject_cb, 5, 0, 1, 1)
 
+        print(repeat)
+        if repeat is True:
+            repeater += 1
+            choose_group_cb.setCurrentIndex(choose_group_cb.findText(group_name_re))
+            self.choose_semester(group_name_re)
+
         # при выборе значения из списка вызывает функцию по поиску семестров
-        choose_subject_cb.currentIndexChanged[str].connect(self.subject)
+        choose_group_cb.currentIndexChanged[str].connect(self.choose_semester)
 
     def choose_semester(self, group_index):
         global choose_container     # главная сетка
         global group_name, semester_name, subject_name  # выбранные значения
         global group_name_re, semester_name_re     # сохраненные значения
         global repeater     # счетчик количества использований
-
+        print('qwertyuiopasdfghjklzxcvbnm,.')
         group_name = group_index
         group_name_re = group_name
 
@@ -161,6 +156,9 @@ class MainDialog(QtGui.QWidget):
                 repeater += 1
                 choose_semester_cb.setCurrentIndex(choose_semester_cb.findText(semester_name_re))
                 self.choose_subject(semester_name_re)
+
+            # при выборе значения из списка вызывает функцию по поиску семестров
+            choose_semester_cb.currentIndexChanged[str].connect(self.choose_subject)
 
             semester_name_re = None
         else:
@@ -206,8 +204,12 @@ class MainDialog(QtGui.QWidget):
 
             if repeat is True:
                 repeater += 1
+                choose_subject_cb.setEnabled(True)
                 choose_subject_cb.setCurrentIndex(choose_subject_cb.findText(subject_name_re))
                 self.subject(subject_name_re)
+
+            # при выборе значения из списка вызывает функцию по поиску семестров
+            choose_subject_cb.currentIndexChanged[str].connect(self.subject)
 
             subject_name_re = None
         else:
@@ -225,7 +227,7 @@ class MainDialog(QtGui.QWidget):
         print(repeater, repeat)
 
     def open(self):
-        global error_id, attendance, names, dates_list, base
+        global error_id, attendance, names, base
         # код ошибки обнуляется
         error_id = None
 
@@ -241,13 +243,6 @@ class MainDialog(QtGui.QWidget):
             # если ошибка возникла, окрывается окно с ошибкой
             self.error_window()
         else:
-            base = logic.Subject(group_name, semester_name, subject_name)
-            attendance = base.get_values_semester()
-            print(attendance)
-            names = sorted(base.get_names())
-            print(names)
-            dates_list = sorted(list(attendance.keys()))
-            print(dates_list)
             self.show_table()
 
     def error_window(self):
@@ -533,12 +528,22 @@ class CreateWindow(QtGui.QWidget):
 
 class TableWindow(QtGui.QMainWindow):
     def __init__(self):
+        QtGui.QMainWindow.__init__(self)
+
         global table_widget
-        global attendance, dates_list
+        global base, attendance, dates_list, names
         global check_self_button, check_button, admin_button
 
         print(group_name, semester_name, subject_name)
-        QtGui.QMainWindow.__init__(self)
+
+        base = logic.Subject(group_name, semester_name, subject_name)
+        attendance = base.get_values_semester()
+        print(attendance)
+        names = sorted(base.get_names())
+        print(names)
+
+        dates_list = sorted(list(attendance.keys()))
+        print(dates_list)
 
         # настройки окна
         self.setWindowTitle('Контроль посещаемости')
@@ -617,6 +622,7 @@ class TableWindow(QtGui.QMainWindow):
         master_index = self.sender()
         self.chlg = CheckLoginWindow()
         self.chlg.show()
+        self.close()
 
     def change_group(self):
         global repeat, group_name_re, semester_name_re, subject_name_re, repeater
@@ -624,6 +630,7 @@ class TableWindow(QtGui.QMainWindow):
         repeater = 0
         group_name_re = group_name
         semester_name_re = semester_name
+        print(semester_name_re)
         subject_name_re = subject_name
         self.chng = MainDialog()
         self.chng.show()
@@ -667,22 +674,21 @@ class CheckLoginWindow(QtGui.QWidget):
 
     def check(self):
         print(login_le.text())
-        # TODO: Сделать автоматическое определение даты
-        date_today = '1.1'
+        date_today = time.strftime("%d") + '.' + time.strftime("%m") + '.' + time.strftime("%Y")
+        print(date_today)
         # TODO: Сделать автоматическое определение кода по времени
-        code = 2
         if bool(login_le.text()) is True:
             try:
                 student_num = int(login_le.text())
                 if master_index == check_self_button:
-                    base.check_in(date_today, student_num, code=code)
-                    TableWindow()
-                    # TODO: Сделать обновление данных в таблице
+                    base.check_in(date_today, student_num, code=1)
+                    self.tb = TableWindow()
+                    self.tb.show()
                     # TODO: Добавить окно с сообщением об успешном завершении операции
                 elif master_index == check_button:
-                    # TODO: Сделать проверку прав
-                    self.ch = CheckWindow()
-                    self.ch.show()
+                    if bool(base.get_student_info(pers_number=student_num)) is True:
+                        self.ch = CheckWindow()
+                        self.ch.show()
                 elif master_index == admin_button:
                     if bool(base.get_student_info(pers_number=student_num)) is True:
                         self.ch = AdminWindow()
@@ -692,14 +698,27 @@ class CheckLoginWindow(QtGui.QWidget):
                 print('dfdf')
 
 
-
-class CheckWindow(QtGui.QTableWidget):
+class CheckWindow(QtGui.QWidget):
     def __init__(self):
-        global attendance, dates_list, date_today, item_cb
+        global attendance, dates_list, date_today, item_cb, table_check_widget
         print(group_name, semester_name, subject_name)
-        QtGui.QTableWidget.__init__(self, len(names), 1)
-        # TODO: Сделать автоматическое определение даты
-        date_today = '1.1'
+        QtGui.QWidget.__init__(self)
+
+        # создание сетки, в которую помещаются остальные виджеты
+        table_check_container = QtGui.QGridLayout(self)
+
+        table_check_widget = QtGui.QTableWidget(len(names), 1, self)
+        table_check_container.addWidget(table_check_widget, 0, 0, 1, 1)
+
+        ok_exit_button = QtGui.QPushButton(u"Принять")
+        self.connect(ok_exit_button, QtCore.SIGNAL('clicked()'), self.ok_exit)
+        table_check_container.addWidget(ok_exit_button, 1, 0, 1, 1)
+
+        # self.setCentralWidget(table_check_widget)
+
+        date_today = time.strftime("%d") + '.' + time.strftime("%m") + '.' + time.strftime("%Y")
+        if date_today not in dates_list:
+            print('NO LESSONS TODAY')
         date_now = []
         date_now.append(date_today)
 
@@ -708,22 +727,21 @@ class CheckWindow(QtGui.QTableWidget):
                 print(i)
 
         # заполнение шапок
-        self.setHorizontalHeaderLabels(date_now)
-        self.setVerticalHeaderLabels(list(names))
+        table_check_widget.setHorizontalHeaderLabels(date_now)
+        table_check_widget.setVerticalHeaderLabels(list(names))
 
         list_of_cb =[]
-        print(self.rowCount())
-        for i in range(self.rowCount()):
-            item_cb = QtGui.QComboBox(self)
+        print(table_check_widget.rowCount())
+        for i in range(table_check_widget.rowCount()):
+            item_cb = QtGui.QComboBox(table_check_widget)
             list_of_cb.append(item_cb)
-            item_cb.addItem(None)
-            for j in [0,1,2,3]:
+            for j in [0, 1, 2, 3]:
                 item_cb.addItem(str(j))
             item_cb.setEditable(False)
             item_cb.currentIndexChanged[str].connect(self.check_in)
 
             # при выборе значения из списка вызывает функцию замены значения посещения
-            self.setCellWidget(i, 0, item_cb)
+            table_check_widget.setCellWidget(i, 0, item_cb)
         print(list_of_cb)
 
         # заполнение ячеек
@@ -734,16 +752,19 @@ class CheckWindow(QtGui.QTableWidget):
                     check_now_item = attendance[date_today].get(item)
                     cb.setCurrentIndex(cb.findText(check_now_item))
 
-        self.resizeColumnsToContents()
+        table_check_widget.resizeColumnsToContents()
 
     def check_in(self, code):
         index = self.sender()
-        index = self.indexAt(index.pos())
+        index = table_check_widget.indexAt(index.pos())
         row = index.row()
-        student_num = base.get_student_info(name=self.verticalHeaderItem(int(row)).text())
+        student_num = base.get_student_info(name=table_check_widget.verticalHeaderItem(int(row)).text())
         base.check_in(date_today, student_num, code)
-        # TODO: Сделать обновление данных в таблице
-        # TODO: Добавить кнопку для завершения операции
+
+    def ok_exit(self):
+        self.tb = TableWindow()
+        self.tb.show()
+        self.close()
 
 
 class AdminWindow(QtGui.QWidget):
@@ -850,6 +871,10 @@ class AdminWindow(QtGui.QWidget):
             day_chosen = str(date_chosen.day())
             month_chosen = str(date_chosen.month())
             year_chosen = str(date_chosen.year())
+            if len(day_chosen) == 1:
+                day_chosen = '0' + day_chosen
+            if len(month_chosen) == 1:
+                month_chosen = '0' + month_chosen
             date = day_chosen + '.' + month_chosen + '.' + year_chosen
             dates = []
             dates.append(date)
@@ -865,17 +890,6 @@ class AdminWindow(QtGui.QWidget):
                 if bool(student_right_cb.currentIndex()) is True:
                     student_right_chosen = int(student_right_cb.currentIndex())-1
                     base.add_students(((student_id_chosen, student_name_chosen, student_right_chosen),))
-
-    def return_to_menu(self):
-        global repeat, group_name_re, semester_name_re, subject_name_re, repeater
-        repeat = True
-        repeater = 0
-        group_name_re = group_name
-        semester_name_re = semester_name
-        subject_name_re = subject_name
-        self.rtrn = MainDialog()
-        self.rtrn.show()
-        self.close()
 
 
 if __name__ == '__main__':
