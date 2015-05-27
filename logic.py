@@ -34,7 +34,7 @@ def add(group, semester='', subject=''):
     if not exists(DBS_PATH):  # е. нет папки с группами, создать
         mkdir(DBS_PATH)
         with open(DBS_PATH + '/' + 'superusers', 'w') as base:
-            base.write(json.dumps({}))
+            base.write(json.dumps({'admin':'admin'}))
     if semester and subject:
         path = DBS_PATH + '/' + group + '/' + semester + '/' + subject
         if not exists(path):
