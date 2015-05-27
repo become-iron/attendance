@@ -31,7 +31,7 @@ def add(group, semester='', subject=''):
     group = str(group)
     semester = str(semester)
     subject = subject.upper()
-    if not exists(DBS_PATH):  # если нет папки с группами, создать
+    if not exists(DBS_PATH):  # е. нет папки с группами, создать
         mkdir(DBS_PATH)
     if semester and subject:
         path = DBS_PATH + '/' + group + '/' + semester + '/' + subject
@@ -84,18 +84,22 @@ def get(data=''):
     data = <группа> - список семестров
     data = (<группа>, <семестр>) - список предметов
     """
-    if not data:
+    if not data:  # список групп
         # е. нет папки с группами, вернуть пустой список
         if not exists(DBS_PATH):
             return ()
         return listdir(DBS_PATH)
-    if isinstance(data, (str, int)):
+    if isinstance(data, (str, int)):  # список семестров
         group = str(data)
         return listdir(DBS_PATH + '/' + group)
-    if isinstance(data, (tuple, list)):
+    if isinstance(data, (tuple, list)):  # список предметов
         group = str(data[0])
         semester = str(data[1])
-        return listdir(DBS_PATH + '/' + group + '/' + semester)
+        semesters_list = listdir(DBS_PATH + '/' + group + '/' + semester)
+        semesters_list.remove('students')
+        return semesters_list
+    logging.error('Переданы некорректные данные')
+    return False
 
 
 class Subject:
@@ -166,12 +170,36 @@ class Subject:
                 logging.warning('Дата %s уже есть в базе' % lesson)
         return True if self._save_db() else False
 
-    def update_student(self):
+    def update_student(self, data, pers_number='', name='', right=''):
         """
         ОБНОВИТЬ ДАННЫЕ СТУДЕНТА
+        Принимает:
+            data (str или int)
+            pers_number
+            name
+            right
         """
-        pass
-        # TODO
+        if right:
+            if pers_number:
+                pass
+            elif name:
+                pass
+            else:
+                logging.error('Указан параметр right, но не получен pers_number или name')
+                return False
+        elif pers_number:
+            pass
+        elif name:
+            pers_number = self.get_student_info(name=name)
+            right = self.get_student_info(name=name, right=True)
+            if not pers_number:
+                logging.error('Студент %s не найден' % name)
+                return False
+            self.students.update({pers_number:(data, right)})
+        else:
+            logging.warning('Не был передан ни один параметр')
+            return False
+        return True if self._save_db(path=self.path_s, base=self.students) else False
 
     def check_in(self, date, pers_number, code=1):
         """
@@ -191,7 +219,7 @@ class Subject:
             self.attendance[date].update({pers_number: code})
             return True if self._save_db() else False
         else:
-            logging.warning('Табельный номер {} или дата {} не найдены'.format(pers_number, date))
+            logging.warning('Таб. номер {} или дата {} не найдены'.format(pers_number, date))
             return False
 
     def get_student_info(self, pers_number='', name='', right=False):
