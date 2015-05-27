@@ -119,7 +119,7 @@ class MainDialog(QtGui.QWidget):
         # при выборе значения из списка вызывает функцию по поиску семестров
         choose_group_cb.currentIndexChanged[str].connect(self.choose_semester)
 
-        self.setFixedSize(self.sizeHint())
+        # self.setFixedSize(self.sizeHint())
 
     def choose_semester(self, group_index):
         global choose_container     # главная сетка
@@ -671,7 +671,19 @@ class TableWindow(QtGui.QMainWindow):
         file.addAction(change_group_button)
         file.addAction(exit_button)
 
-        self.setFixedSize(self.sizeHint())
+        table_widget.resize(table_widget.sizeHint())
+        
+    def sizeHint(self):
+        width = 0
+        for i in range(table_widget.columnCount()):
+            width += table_widget.columnWidth(i)
+
+        width += table_widget.verticalHeader().sizeHint().width()
+
+        width += table_widget.verticalScrollBar().sizeHint().width()
+        width += table_widget.frameWidth()*2
+
+        return QtCore.QSize(width,table_widget.height())
 
     def check_login(self):
         global master_index
