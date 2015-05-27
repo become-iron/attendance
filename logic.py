@@ -53,8 +53,9 @@ def add(group, semester='', subject=''):
             return False
     elif semester and not subject:
         path = DBS_PATH + '/' + group + '/' + semester
-        if not exists(path):
+        if not exists(DBS_PATH + '/' + group):
             mkdir(DBS_PATH + '/' + group)
+        if not exists(path):
             mkdir(path)
             # создать базу со студентами
             with open(path+'/students', 'w') as base:
@@ -92,7 +93,9 @@ def get(data=''):
         # е. нет папки с группами, вернуть пустой список
         if not exists(DBS_PATH):
             return ()
-        return listdir(DBS_PATH)
+        groups = listdir(DBS_PATH)
+        groups.remove('students')
+        return groups
     if isinstance(data, (str, int)):  # список семестров
         group = str(data)
         return listdir(DBS_PATH + '/' + group)
